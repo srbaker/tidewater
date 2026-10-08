@@ -12,6 +12,16 @@ TwCounterView class >> on: aCounter [
 	^ self new setCounter: aCounter
 ]
 
+{ #category : 'actions' }
+TwCounterView >> actions [
+	^ #(#increment)
+]
+
+{ #category : 'actions' }
+TwCounterView >> increment [
+	counter increment
+]
+
 { #category : 'rendering' }
 TwCounterView >> render [
 	^ '<p>', counter count printString, '</p>'

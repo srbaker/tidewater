@@ -13,10 +13,23 @@ TwApp class >> on: aView [
 ]
 
 { #category : 'handling' }
+TwApp >> renderInto: aResponse [
+	aResponse content: view render
+]
+
+{ #category : 'handling' }
 TwApp >> router [
 	^ Router new
-		get: '/' do: [:request :response | response content: view render];
+		get: '/' do: [:request :response | self renderInto: response];
+		post: '/:action' do: [:request :response :action | self run: action asSymbol into: response];
 		yourself
+]
+
+{ #category : 'handling' }
+TwApp >> run: anAction into: aResponse [
+	(view actions includes: anAction) ifFalse: [^ aResponse code: 404].
+	view perform: anAction.
+	self renderInto: aResponse
 ]
 
 { #category : 'serving' }
