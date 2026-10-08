@@ -88,13 +88,22 @@ TwViewTest >> testResetsTheCounter [
 ]
 
 { #category : 'tests' }
+TwViewTest >> testSendsItsCurrentRenderWhenAStreamOpens [
+	| view socket |
+	view := TwCounterView on: TwCounter new.
+	socket := TwMockSocket whileOpen: [].
+	view stream: socket.
+	self assert: socket written asArray equals: {view eventFor: view render}
+]
+
+{ #category : 'tests' }
 TwViewTest >> testStopsStreamingWhenTheClientLeaves [
 	| view socket |
 	view := TwCounterView on: TwCounter new.
 	socket := TwMockSocket whileOpen: [].
 	view stream: socket.
 	view push.
-	self assert: socket written isEmpty
+	self assert: socket written size equals: 1
 ]
 
 { #category : 'tests' }

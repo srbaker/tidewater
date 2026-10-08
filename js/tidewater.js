@@ -24,5 +24,7 @@ document.addEventListener('submit', (event) => {
 });
 
 const events = new EventSource(`/events/${root().getAttribute('tw-view')}`);
-events.onopen = () => root().setAttribute('tw-connected', '');
-events.onmessage = (event) => morph(root(), event.data);
+events.onmessage = (event) => {
+  morph(root(), event.data);
+  root().setAttribute('tw-connected', '');
+};

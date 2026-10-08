@@ -94,6 +94,8 @@ TwView >> render: aView [
 { #category : 'streaming' }
 TwView >> stream: aSocket [
 	sockets add: aSocket.
+	rendered := self render.
+	aSocket write: (self eventFor: rendered).
 	[aSocket readWillNotBlockWithin: -1] ensure: [sockets remove: aSocket]
 ]
 

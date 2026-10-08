@@ -192,10 +192,7 @@ TwAppTest >> testUnknownActionsAndViewsAreNotFound [
 
 { #category : 'tests' }
 TwAppTest >> testUsesTheRealSessionByDefault [
-	| default |
-	default := (TwApp on: [TwCounterView on: TwCounter new]) session.
-	self assert: default system identical: System.
-	self assert: default notifications identical: ObjectsCommittedNotification
+	self assert: (TwApp on: [TwCounterView on: TwCounter new]) session system identical: System
 ]
 
 { #category : 'tests' }

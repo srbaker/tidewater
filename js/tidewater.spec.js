@@ -56,10 +56,17 @@ test('an action inside a child view posts to the child and morphs only the child
   await expect(page.locator('[tw-view="p1"] > p')).toHaveText('outer');
 });
 
-test('marks the view connected once its event stream opens', async ({ page }) => {
-  await open(page);
+test('marks the view connected once its first event arrives', async ({ page }) => {
+  await open(page, { events: 'data: <p>0</p><button tw-click="increment">+</button>\n\n' });
 
   await expect(page.locator('[tw-view][tw-connected]')).toBeAttached();
+});
+
+test('does not mark the view connected while its stream sends nothing', async ({ page }) => {
+  await open(page);
+  await page.waitForTimeout(300);
+
+  await expect(page.locator('[tw-view][tw-connected]')).toHaveCount(0);
 });
 
 test('morphs pushed events into the view', async ({ page }) => {

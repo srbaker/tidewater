@@ -3,7 +3,8 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'log',
-		'watched'
+		'watched',
+		'signaled'
 	],
 	#category : 'Tidewater-Tests'
 }
@@ -24,20 +25,21 @@ TwMockSystem >> addAllToNotifySet: aCollection [
 	log add: #addAllToNotifySet:
 ]
 
+{ #category : 'notifications' }
+TwMockSystem >> commitChangeTo: anObject [
+	signaled add: anObject
+]
+
 { #category : 'transactions' }
 TwMockSystem >> commitTransaction [
 	log add: #commitTransaction.
 	^ true
 ]
 
-{ #category : 'notifications' }
-TwMockSystem >> enableSignaledObjectsError [
-	log add: #enableSignaledObjectsError
-]
-
 { #category : 'initialization' }
 TwMockSystem >> initialize [
-	log := OrderedCollection new
+	log := OrderedCollection new.
+	signaled := OrderedCollection new
 ]
 
 { #category : 'accessing' }
@@ -47,8 +49,11 @@ TwMockSystem >> log [
 
 { #category : 'notifications' }
 TwMockSystem >> signaledObjects [
+	| objects |
 	log add: #signaledObjects.
-	^ #()
+	objects := signaled asArray.
+	signaled := OrderedCollection new.
+	^ objects
 ]
 
 { #category : 'accessing' }

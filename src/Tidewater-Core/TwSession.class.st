@@ -3,20 +3,15 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'system',
-		'notifications',
-		'heartbeat'
+		'changed',
+		'poller'
 	],
 	#category : 'Tidewater-Core'
 }
 
 { #category : 'instance creation' }
 TwSession class >> on: aSystem [
-	^ self on: aSystem notifying: ObjectsCommittedNotification
-]
-
-{ #category : 'instance creation' }
-TwSession class >> on: aSystem notifying: aNotificationClass [
-	^ self new setSystem: aSystem notifications: aNotificationClass
+	^ self new setSystem: aSystem
 ]
 
 { #category : 'transactions' }
@@ -27,25 +22,26 @@ TwSession >> do: aBlock [
 ]
 
 { #category : 'watching' }
-TwSession >> isAwake [
-	^ heartbeat notNil
+TwSession >> isPolling [
+	^ poller notNil
 ]
 
-{ #category : 'accessing' }
-TwSession >> notifications [
-	^ notifications
+{ #category : 'watching' }
+TwSession >> poll [
+	system signaledObjects isEmpty ifTrue: [^ self].
+	system abortTransaction.
+	changed value
 ]
 
 { #category : 'initialization' }
-TwSession >> setSystem: aSystem notifications: aNotificationClass [
-	system := aSystem.
-	notifications := aNotificationClass
+TwSession >> setSystem: aSystem [
+	system := aSystem
 ]
 
 { #category : 'watching' }
 TwSession >> stop [
-	heartbeat terminate.
-	heartbeat := nil
+	poller terminate.
+	poller := nil
 ]
 
 { #category : 'accessing' }
@@ -55,14 +51,11 @@ TwSession >> system [
 
 { #category : 'watching' }
 TwSession >> watch: objects [
-	system addAllToNotifySet: objects; enableSignaledObjectsError
+	system addAllToNotifySet: objects
 ]
 
 { #category : 'watching' }
 TwSession >> whenChanged: aBlock [
-	notifications addDefaultHandler: [:notification |
-		system signaledObjects; enableSignaledObjectsError.
-		[system abortTransaction. aBlock value] fork.
-		notification resume].
-	heartbeat := [[true] whileTrue: [(Delay forMilliseconds: 100) wait]] fork
+	changed := aBlock.
+	poller := [[true] whileTrue: [(Delay forMilliseconds: 100) wait. self poll]] fork
 ]

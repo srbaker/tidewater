@@ -13,27 +13,35 @@ TwSessionTest >> testAbortsRunsAndCommits [
 ]
 
 { #category : 'tests' }
-TwSessionTest >> testKeepsTheGemAwakeWhileWatching [
-	| session |
-	session := TwSession on: TwMockSystem new notifying: TwMockNotifications new.
-	session whenChanged: [].
-	[self assert: session isAwake] ensure: [session stop].
-	self deny: session isAwake
+TwSessionTest >> testDoesNothingWhenNothingWatchedHasChanged [
+	| system session |
+	system := TwMockSystem new.
+	session := TwSession on: system.
+	session whenChanged: [system log add: #changed].
+	[session poll.
+	self assert: system log asArray equals: #(#signaledObjects)]
+		ensure: [session stop]
 ]
 
 { #category : 'tests' }
-TwSessionTest >> testWatchesObjectsAndRefreshesWhenTheyChange [
-	| system notifications session |
+TwSessionTest >> testKeepsPollingWhileWatching [
+	| session |
+	session := TwSession on: TwMockSystem new.
+	session whenChanged: [].
+	[self assert: session isPolling] ensure: [session stop].
+	self deny: session isPolling
+]
+
+{ #category : 'tests' }
+TwSessionTest >> testRefreshesAndReactsWhenAWatchedObjectHasChanged [
+	| system session |
 	system := TwMockSystem new.
-	notifications := TwMockNotifications new.
-	session := TwSession on: system notifying: notifications.
+	session := TwSession on: system.
 	session whenChanged: [system log add: #changed].
 	[session watch: #(#a #b).
-	notifications signal.
-	Processor yield.
+	system commitChangeTo: #a.
+	session poll.
 	self assert: system watched equals: #(#a #b).
-	self
-		assert: system log asArray
-		equals: #(#addAllToNotifySet: #enableSignaledObjectsError #signaledObjects #enableSignaledObjectsError #abortTransaction #changed)]
+	self assert: system log asArray equals: #(#addAllToNotifySet: #signaledObjects #abortTransaction #changed)]
 		ensure: [session stop]
 ]
