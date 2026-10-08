@@ -81,7 +81,7 @@ TwApp >> scriptsDirectory [
 { #category : 'serving' }
 TwApp >> serve: aListener on: aPort [
 	session watch: view watches then: [self push].
-	aListener port: aPort; router: self router; run
+	aListener port: aPort; listenBacklog: 200; router: self router; run
 ]
 
 { #category : 'serving' }

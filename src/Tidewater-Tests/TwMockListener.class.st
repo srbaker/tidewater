@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'port',
 		'router',
-		'running'
+		'running',
+		'listenBacklog'
 	],
 	#category : 'Tidewater-Tests'
 }
@@ -12,6 +13,16 @@ Class {
 { #category : 'testing' }
 TwMockListener >> isRunning [
 	^ running = true
+]
+
+{ #category : 'accessing' }
+TwMockListener >> listenBacklog [
+	^ listenBacklog
+]
+
+{ #category : 'accessing' }
+TwMockListener >> listenBacklog: anInteger [
+	listenBacklog := anInteger
 ]
 
 { #category : 'accessing' }

@@ -40,6 +40,14 @@ TwAppTest >> routerFor: aView in: aSession [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testListensWithRoomForBurstsOfConnections [
+	| listener |
+	listener := TwMockListener new.
+	(TwApp on: (TwCounterView on: TwCounter new) in: TwMockSession new) serve: listener on: 8888.
+	self assert: listener listenBacklog equals: 200
+]
+
+{ #category : 'tests' }
 TwAppTest >> testPostingAnActionUpdatesTheView [
 	| counter view |
 	counter := TwCounter new.
