@@ -21,3 +21,8 @@ TwMockView >> render [
 TwMockView >> setHtml: aString [
 	html := aString
 ]
+
+{ #category : 'watching' }
+TwMockView >> watches [
+	^ #()
+]

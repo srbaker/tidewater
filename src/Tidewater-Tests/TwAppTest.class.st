@@ -28,14 +28,14 @@ TwAppTest >> post: aPath [
 
 { #category : 'private' }
 TwAppTest >> routerFor: aView [
-	^ self routerFor: aView in: TwMockTransaction new
+	^ self routerFor: aView in: TwMockSession new
 ]
 
 { #category : 'private' }
-TwAppTest >> routerFor: aView in: aTransaction [
+TwAppTest >> routerFor: aView in: aSession [
 	| listener |
 	listener := TwMockListener new.
-	(TwApp on: aView in: aTransaction) serve: listener on: 8888.
+	(TwApp on: aView in: aSession) serve: listener on: 8888.
 	^ listener router
 ]
 
@@ -65,18 +65,23 @@ TwAppTest >> testPrefixesEveryLineOfAnEvent [
 ]
 
 { #category : 'tests' }
-TwAppTest >> testRunsActionsInARealTransactionByDefault [
-	| app |
-	app := TwApp on: (TwCounterView on: TwCounter new).
-	self assert: app transaction system identical: System
+TwAppTest >> testPushesWhenAWatchedObjectChanges [
+	| app session listener socket |
+	session := TwMockSession new.
+	app := TwApp on: (TwCounterView on: TwCounter new) in: session.
+	listener := TwMockListener new.
+	app serve: listener on: 8888.
+	socket := TwMockSocket whileOpen: [session change].
+	(listener router handle: (self get: '/events')) sendResponseOn: socket.
+	self assert: socket written last equals: app event
 ]
 
 { #category : 'tests' }
 TwAppTest >> testRunsActionsInATransaction [
-	| transaction |
-	transaction := TwMockTransaction new.
-	(self routerFor: (TwCounterView on: TwCounter new) in: transaction) handle: (self post: '/increment').
-	self assert: transaction hasRun
+	| session |
+	session := TwMockSession new.
+	(self routerFor: (TwCounterView on: TwCounter new) in: session) handle: (self post: '/increment').
+	self assert: session hasRun
 ]
 
 { #category : 'tests' }
@@ -102,7 +107,7 @@ TwAppTest >> testServesItsViewWithAListenerOnAPort [
 	| view listener |
 	view := TwCounterView on: TwCounter new.
 	listener := TwMockListener new.
-	(TwApp on: view) serve: listener on: 8888.
+	(TwApp on: view in: TwMockSession new) serve: listener on: 8888.
 	self assert: listener port equals: 8888.
 	self assert: listener isRunning.
 	self assert: ((self bodyOf: (listener router handle: (self get: '/'))) includesString: view render)
@@ -135,4 +140,21 @@ TwAppTest >> testStreamsTheViewWhenAnActionRuns [
 	(router handle: (self get: '/events')) sendResponseOn: socket.
 	self assert: (socket written first includesString: 'Content-Type: text/event-stream').
 	self assert: socket written last equals: 'data: ', view render, (String with: Character lf with: Character lf)
+]
+
+{ #category : 'tests' }
+TwAppTest >> testUsesTheRealSessionByDefault [
+	| session |
+	session := (TwApp on: (TwCounterView on: TwCounter new)) session.
+	self assert: session system identical: System.
+	self assert: session notifications identical: ObjectsCommittedNotification
+]
+
+{ #category : 'tests' }
+TwAppTest >> testWatchesWhatItsViewWatches [
+	| counter session |
+	counter := TwCounter new.
+	session := TwMockSession new.
+	self routerFor: (TwCounterView on: counter) in: session.
+	self assert: session watched asArray equals: {counter}
 ]

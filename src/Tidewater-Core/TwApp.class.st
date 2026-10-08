@@ -3,7 +3,7 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'view',
-		'transaction',
+		'session',
 		'subscribers'
 	],
 	#category : 'Tidewater-Core'
@@ -11,12 +11,12 @@ Class {
 
 { #category : 'instance creation' }
 TwApp class >> on: aView [
-	^ self on: aView in: (TwTransaction on: System)
+	^ self on: aView in: (TwSession on: System)
 ]
 
 { #category : 'instance creation' }
-TwApp class >> on: aView in: aTransaction [
-	^ self new setView: aView transaction: aTransaction
+TwApp class >> on: aView in: aSession [
+	^ self new setView: aView session: aSession
 ]
 
 { #category : 'streaming' }
@@ -58,8 +58,7 @@ TwApp >> router [
 { #category : 'handling' }
 TwApp >> run: anAction into: aResponse [
 	(view actions includes: anAction) ifFalse: [^ aResponse code: 404].
-	transaction do: [view perform: anAction].
-	self push.
+	session do: [view perform: anAction].
 	self renderInto: aResponse
 ]
 
@@ -81,6 +80,7 @@ TwApp >> scriptsDirectory [
 
 { #category : 'serving' }
 TwApp >> serve: aListener on: aPort [
+	session watch: view watches then: [self push].
 	aListener port: aPort; router: self router; run
 ]
 
@@ -89,10 +89,15 @@ TwApp >> serveOn: aPort [
 	self serve: HttpListener new on: aPort
 ]
 
+{ #category : 'accessing' }
+TwApp >> session [
+	^ session
+]
+
 { #category : 'initialization' }
-TwApp >> setView: aView transaction: aTransaction [
+TwApp >> setView: aView session: aSession [
 	view := aView.
-	transaction := aTransaction.
+	session := aSession.
 	subscribers := IdentitySet new
 ]
 
@@ -107,9 +112,4 @@ TwApp >> streamInto: aResponse [
 	aResponse
 		contentType: 'text/event-stream';
 		sendContentsBlock: [:socket | self stream: socket]
-]
-
-{ #category : 'accessing' }
-TwApp >> transaction [
-	^ transaction
 ]
