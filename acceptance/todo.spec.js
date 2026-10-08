@@ -36,3 +36,14 @@ test('a blank item shows an error on that page only', async ({ browser }) => {
   await expect(one.getByText("Item can't be blank")).toBeVisible();
   await expect(two.getByText("Item can't be blank")).toHaveCount(0);
 });
+
+test('typing a filter narrows that page\'s list as you type', async ({ browser }) => {
+  commit("(UserGlobals at: #TidewaterAcceptanceModel) add: 'milk'; add: 'eggs'");
+  const [one, two] = await openTwo(browser);
+
+  await one.getByRole('searchbox').pressSequentially('mi');
+
+  await expect(one.getByRole('listitem')).toHaveText(['milk']);
+  await expect(one.getByRole('searchbox')).toHaveValue('mi');
+  await expect(two.getByRole('listitem')).toHaveText(['milk', 'eggs']);
+});

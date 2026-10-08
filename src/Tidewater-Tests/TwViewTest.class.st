@@ -18,6 +18,13 @@ TwViewTest >> testDoesNotWarnAboutPushedChanges [
 ]
 
 { #category : 'tests' }
+TwViewTest >> testEscapesTextForHtml [
+	self
+		assert: ((TwMockView rendering: '') escape: '<a href="x">Tom & Jerry''s</a>')
+		equals: '&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&#39;s&lt;/a&gt;'
+]
+
+{ #category : 'tests' }
 TwViewTest >> testFindsItselfAndItsDescendantsById [
 	| grandchild child parent |
 	grandchild := TwMockView rendering: ''.

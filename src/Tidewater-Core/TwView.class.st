@@ -48,6 +48,18 @@ TwView >> document [
 	^ '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view="', id, '">', rendered, '</div></body></html>'
 ]
 
+{ #category : 'rendering' }
+TwView >> escape: aString [
+	| html |
+	html := WriteStream on: String new.
+	aString do: [:each | | special |
+		special := '&<>"''' indexOf: each.
+		special = 0
+			ifTrue: [html nextPut: each]
+			ifFalse: [html nextPutAll: (#('&amp;' '&lt;' '&gt;' '&quot;' '&#39;') at: special)]].
+	^ html contents
+]
+
 { #category : 'streaming' }
 TwView >> eventFor: html [
 	| lines event |

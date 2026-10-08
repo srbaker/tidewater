@@ -56,6 +56,32 @@ test('an action inside a child view posts to the child and morphs only the child
   await expect(page.locator('[tw-view="p1"] > p')).toHaveText('outer');
 });
 
+test('typing in an input posts its value once typing pauses', async ({ page }) => {
+  const posts = [];
+  await page.route('http://tidewater.test/p1/filter', (route) => {
+    posts.push(route.request().postData());
+    route.fulfill({ body: '<input type="search" name="filter" tw-input="filter" tw-debounce="100"><ul><li>milk</li></ul>' });
+  });
+  await open(page, { view: '<input type="search" name="filter" tw-input="filter" tw-debounce="100"><ul><li>milk</li><li>eggs</li></ul>' });
+
+  await page.getByRole('searchbox').pressSequentially('milk', { delay: 20 });
+  await expect(page.getByRole('listitem')).toHaveText(['milk']);
+  await page.waitForTimeout(200);
+
+  expect(posts).toEqual(['filter=milk']);
+});
+
+test('morphing leaves the element being typed in alone', async ({ page }) => {
+  await page.route('http://tidewater.test/p1/filter', (route) =>
+    route.fulfill({ body: '<input type="search" name="filter" tw-input="filter" value=""><ul><li>milk</li></ul>' }));
+  await open(page, { view: '<input type="search" name="filter" tw-input="filter"><ul><li>milk</li><li>eggs</li></ul>' });
+
+  await page.getByRole('searchbox').pressSequentially('mi');
+
+  await expect(page.getByRole('listitem')).toHaveText(['milk']);
+  await expect(page.getByRole('searchbox')).toHaveValue('mi');
+});
+
 test('marks the view connected once its first event arrives', async ({ page }) => {
   await open(page, { events: 'data: <p>0</p><button tw-click="increment">+</button>\n\n' });
 

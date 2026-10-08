@@ -15,6 +15,29 @@ TwTodoViewTest >> testAddsAnItemFromItsFields [
 ]
 
 { #category : 'tests' }
+TwTodoViewTest >> testEscapesWhatPeopleType [
+	| list view |
+	list := TwTodoList new.
+	list add: '<script>'.
+	view := TwTodoView on: list.
+	view filter: (Dictionary new at: 'filter' put: '"><'; yourself).
+	self deny: (view render includesString: '<script>').
+	self assert: (view render includesString: 'value="&quot;&gt;&lt;"')
+]
+
+{ #category : 'tests' }
+TwTodoViewTest >> testFiltersItsItems [
+	| list view |
+	list := TwTodoList new.
+	list add: 'milk'; add: 'eggs'.
+	view := TwTodoView on: list.
+	view filter: (Dictionary new at: 'filter' put: 'mi'; yourself).
+	self assert: (view render includesString: '<ul><li>milk</li></ul>').
+	self assert: (view render includesString: 'value="mi"').
+	self assert: (view actions includes: #filter:)
+]
+
+{ #category : 'tests' }
 TwTodoViewTest >> testNoticesAddedItems [
 	| list |
 	list := TwTodoList new.
@@ -40,5 +63,5 @@ TwTodoViewTest >> testRendersItsItemsAndAForm [
 	view id: 'v'.
 	self
 		assert: view render
-		equals: '<ul><li>milk</li></ul><div tw-view="v-1"><form tw-submit="add"><input name="item"><button>Add</button></form></div>'
+		equals: '<input type="search" name="filter" tw-input="filter" tw-debounce="200" value=""><ul><li>milk</li></ul><div tw-view="v-1"><form tw-submit="add"><input name="item"><button>Add</button></form></div>'
 ]

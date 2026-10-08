@@ -1,5 +1,8 @@
 const root = () => document.querySelector('[tw-view]');
-const morph = (view, html) => morphdom(view, `<div>${html}</div>`, { childrenOnly: true });
+const morph = (view, html) => morphdom(view, `<div>${html}</div>`, {
+  childrenOnly: true,
+  onBeforeElUpdated: (element) => element !== document.activeElement,
+});
 
 async function run(element, action, fields = '') {
   const view = element.closest('[tw-view]');
@@ -21,6 +24,17 @@ document.addEventListener('submit', (event) => {
   if (!form) return;
   event.preventDefault();
   run(form, form.getAttribute('tw-submit'), new URLSearchParams(new FormData(form)));
+});
+
+const pauses = new WeakMap();
+
+document.addEventListener('input', (event) => {
+  const input = event.target.closest('[tw-input]');
+  if (!input) return;
+  clearTimeout(pauses.get(input));
+  pauses.set(input, setTimeout(
+    () => run(input, input.getAttribute('tw-input'), new URLSearchParams({ [input.name]: input.value })),
+    Number(input.getAttribute('tw-debounce') ?? 0)));
 });
 
 const events = new EventSource(`/events/${root().getAttribute('tw-view')}`);
