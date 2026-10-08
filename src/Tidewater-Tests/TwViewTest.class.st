@@ -5,8 +5,9 @@ Class {
 }
 
 { #category : 'tests' }
-TwViewTest >> testRendersItsModel [
+TwViewTest >> testRendersTheCount [
 	| counter |
 	counter := TwCounter new.
-	self assert: (TwCounterView on: counter) render equals: '<p>0</p>'
+	counter increment.
+	self assert: (TwCounterView on: counter) render equals: '<p>1</p>'
 ]

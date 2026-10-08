@@ -1,15 +1,23 @@
 Class {
 	#name : 'TwCounterView',
 	#superclass : 'Object',
+	#instVars : [
+		'counter'
+	],
 	#category : 'Tidewater-Tests'
 }
 
 { #category : 'instance creation' }
 TwCounterView class >> on: aCounter [
-	^ self new
+	^ self new setCounter: aCounter
 ]
 
 { #category : 'rendering' }
 TwCounterView >> render [
-	^ '<p>0</p>'
+	^ '<p>', counter count printString, '</p>'
+]
+
+{ #category : 'initialization' }
+TwCounterView >> setCounter: aCounter [
+	counter := aCounter
 ]
