@@ -18,6 +18,20 @@ TwViewTest >> testDoesNotWarnAboutPushedChanges [
 ]
 
 { #category : 'tests' }
+TwViewTest >> testFindsItselfAndItsDescendantsById [
+	| grandchild child parent |
+	grandchild := TwMockView rendering: ''.
+	child := TwMockView rendering: '' children: {grandchild}.
+	parent := TwMockView rendering: '' children: {child}.
+	parent id: 'abc'.
+	parent render: child.
+	child render: grandchild.
+	self assert: (parent viewAt: 'abc') identical: parent.
+	self assert: (parent viewAt: 'abc-1-1') identical: grandchild.
+	self assert: (parent viewAt: 'abc-2') isNil
+]
+
+{ #category : 'tests' }
 TwViewTest >> testPrefixesEveryLineOfAnEvent [
 	| lf |
 	lf := String with: Character lf.
@@ -34,6 +48,16 @@ TwViewTest >> testPushesItselfToItsStreams [
 	socket := TwMockSocket whileOpen: [counter increment. view push].
 	view stream: socket.
 	self assert: socket written last equals: (view eventFor: '<p>1</p><button tw-click="increment">+</button>')
+]
+
+{ #category : 'tests' }
+TwViewTest >> testRendersAChildInsideItsOwnView [
+	| child parent |
+	child := TwMockView rendering: '<p>child</p>'.
+	parent := TwMockView rendering: '' children: {child}.
+	parent id: 'abc'.
+	self assert: (parent render: child) equals: '<div tw-view="abc-1"><p>child</p></div>'.
+	self assert: child id equals: 'abc-1'
 ]
 
 { #category : 'tests' }
@@ -83,4 +107,12 @@ TwViewTest >> testWarnsAboutChangesThatWereNeverPushed [
 	warnings := WriteStream on: String new.
 	view checkForUnwatchedChangesTo: warnings.
 	self assert: (warnings contents includesString: 'TwCounterView changed without a watched object changing')
+]
+
+{ #category : 'tests' }
+TwViewTest >> testWatchesWhatItsChildrenWatch [
+	| child parent |
+	child := TwMockView watching: #(#b #c) children: #().
+	parent := TwMockView watching: #(#a) children: {child}.
+	self assert: parent allWatches asArray equals: #(#a #b #c)
 ]

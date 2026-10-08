@@ -98,7 +98,7 @@ TwAppTest >> testGivesEachVisitAFreshViewWithAnUnguessableId [
 TwAppTest >> testPassesPostedFieldsToActionsThatTakeThem [
 	| list router id |
 	list := TwTodoList new.
-	router := self routerFor: (TwApp on: [TwTodoView on: list] in: session).
+	router := self routerFor: (TwApp on: [TwTodoForm on: list] in: session).
 	id := self openViewWith: router.
 	router handle: (self post: '/', id, '/add' fields: 'item=milk').
 	self assert: list items asArray equals: #('milk')
@@ -116,6 +116,16 @@ TwAppTest >> testPushesEveryViewWhenAWatchedObjectChanges [
 	(router handle: (self get: '/events/', one)) sendResponseOn: first.
 	self assert: first written last equals: (self event: (TwCounterView on: counter) render).
 	self assert: second written last equals: (self event: (TwCounterView on: counter) render)
+]
+
+{ #category : 'tests' }
+TwAppTest >> testRunsActionsOnChildViews [
+	| counter router id |
+	counter := TwCounter new.
+	router := self routerFor: (TwApp on: [TwMockView rendering: '' children: {TwCounterView on: counter}] in: session).
+	id := self openViewWith: router.
+	router handle: (self post: '/', id, '-1/increment').
+	self assert: counter count equals: 1
 ]
 
 { #category : 'tests' }
@@ -200,6 +210,14 @@ TwAppTest >> testWarnsWhenAViewShowsAChangeThatWasNeverPushed [
 	counter increment.
 	self openViewWith: router.
 	self assert: (warnings contents includesString: 'TwCounterView changed without a watched object changing')
+]
+
+{ #category : 'tests' }
+TwAppTest >> testWatchesWhatChildViewsWatch [
+	| counter |
+	counter := TwCounter new.
+	self openViewWith: (self routerFor: (TwApp on: [TwMockView rendering: '' children: {TwCounterView on: counter}] in: session)).
+	self assert: session watched asArray equals: {counter}
 ]
 
 { #category : 'tests' }

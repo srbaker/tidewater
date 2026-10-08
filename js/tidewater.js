@@ -1,28 +1,28 @@
-const view = () => document.querySelector('[tw-view]');
-const id = view().getAttribute('tw-view');
-const morph = (html) => morphdom(view(), `<div>${html}</div>`, { childrenOnly: true });
+const root = () => document.querySelector('[tw-view]');
+const morph = (view, html) => morphdom(view, `<div>${html}</div>`, { childrenOnly: true });
 
-async function run(action, fields = '') {
-  const response = await fetch(`/${id}/${action}`, {
+async function run(element, action, fields = '') {
+  const view = element.closest('[tw-view]');
+  const response = await fetch(`/${view.getAttribute('tw-view')}/${action}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: fields.toString(),
   });
-  morph(await response.text());
+  morph(view, await response.text());
 }
 
 document.addEventListener('click', (event) => {
-  const action = event.target.closest('[tw-click]')?.getAttribute('tw-click');
-  if (action) run(action);
+  const element = event.target.closest('[tw-click]');
+  if (element) run(element, element.getAttribute('tw-click'));
 });
 
 document.addEventListener('submit', (event) => {
   const form = event.target.closest('[tw-submit]');
   if (!form) return;
   event.preventDefault();
-  run(form.getAttribute('tw-submit'), new URLSearchParams(new FormData(form)));
+  run(form, form.getAttribute('tw-submit'), new URLSearchParams(new FormData(form)));
 });
 
-const events = new EventSource(`/events/${id}`);
-events.onopen = () => view().setAttribute('tw-connected', '');
-events.onmessage = (event) => morph(event.data);
+const events = new EventSource(`/events/${root().getAttribute('tw-view')}`);
+events.onopen = () => root().setAttribute('tw-connected', '');
+events.onmessage = (event) => morph(root(), event.data);

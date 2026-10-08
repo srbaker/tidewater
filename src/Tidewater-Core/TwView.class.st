@@ -19,6 +19,13 @@ TwView >> actions [
 	^ #()
 ]
 
+{ #category : 'watching' }
+TwView >> allWatches [
+	^ self children
+		inject: self watches asOrderedCollection
+		into: [:all :each | all addAll: each allWatches; yourself]
+]
+
 { #category : 'checking' }
 TwView >> checkForUnwatchedChangesTo: aStream [
 	| html |
@@ -28,6 +35,11 @@ TwView >> checkForUnwatchedChangesTo: aStream [
 			nextPutAll: self class name, ' changed without a watched object changing; watch more, or put it behind a TwRoot';
 			lf].
 	rendered := html
+]
+
+{ #category : 'composing' }
+TwView >> children [
+	^ #()
 ]
 
 { #category : 'rendering' }
@@ -52,7 +64,8 @@ TwView >> id [
 
 { #category : 'accessing' }
 TwView >> id: aString [
-	id := aString
+	id := aString.
+	self children keysAndValuesDo: [:index :each | each id: id, '-', index printString]
 ]
 
 { #category : 'initialization' }
@@ -73,10 +86,22 @@ TwView >> render [
 	^ self subclassResponsibility
 ]
 
+{ #category : 'composing' }
+TwView >> render: aView [
+	^ '<div tw-view="', (aView id ifNil: ['']), '">', aView render, '</div>'
+]
+
 { #category : 'streaming' }
 TwView >> stream: aSocket [
 	sockets add: aSocket.
 	[aSocket readWillNotBlockWithin: -1] ensure: [sockets remove: aSocket]
+]
+
+{ #category : 'composing' }
+TwView >> viewAt: anId [
+	id = anId ifTrue: [^ self].
+	self children do: [:each | (each viewAt: anId) ifNotNil: [:found | ^ found]].
+	^ nil
 ]
 
 { #category : 'watching' }

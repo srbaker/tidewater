@@ -6,12 +6,12 @@ Class {
 
 { #category : 'tests' }
 TwTodoViewTest >> testAddsAnItemFromItsFields [
-	| list view |
+	| list form |
 	list := TwTodoList new.
-	view := TwTodoView on: list.
-	view add: (Dictionary new at: 'item' put: 'milk'; yourself).
+	form := TwTodoForm on: list.
+	form add: (Dictionary new at: 'item' put: 'milk'; yourself).
 	self assert: list items asArray equals: #('milk').
-	self assert: (view actions includes: #add:)
+	self assert: (form actions includes: #add:)
 ]
 
 { #category : 'tests' }
@@ -23,20 +23,22 @@ TwTodoViewTest >> testNoticesAddedItems [
 
 { #category : 'tests' }
 TwTodoViewTest >> testRejectsABlankItem [
-	| list view |
+	| list form |
 	list := TwTodoList new.
-	view := TwTodoView on: list.
-	view add: (Dictionary new at: 'item' put: ''; yourself).
+	form := TwTodoForm on: list.
+	form add: (Dictionary new at: 'item' put: ''; yourself).
 	self assert: list items isEmpty.
-	self assert: (view render includesString: 'Item can''t be blank')
+	self assert: (form render includesString: 'Item can''t be blank')
 ]
 
 { #category : 'tests' }
 TwTodoViewTest >> testRendersItsItemsAndAForm [
-	| list |
+	| list view |
 	list := TwTodoList new.
 	list add: 'milk'.
+	view := TwTodoView on: list.
+	view id: 'v'.
 	self
-		assert: (TwTodoView on: list) render
-		equals: '<ul><li>milk</li></ul><form tw-submit="add"><input name="item"><button>Add</button></form>'
+		assert: view render
+		equals: '<ul><li>milk</li></ul><div tw-view="v-1"><form tw-submit="add"><input name="item"><button>Add</button></form></div>'
 ]

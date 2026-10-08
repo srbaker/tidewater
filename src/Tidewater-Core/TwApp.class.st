@@ -47,7 +47,7 @@ TwApp >> openViewInto: aResponse [
 	view := factory value.
 	view id: self newViewId.
 	views at: view id put: view.
-	session watch: view watches.
+	session watch: view allWatches.
 	aResponse content: view document
 ]
 
@@ -69,7 +69,7 @@ TwApp >> router [
 { #category : 'handling' }
 TwApp >> run: aString on: anId with: aRequest into: aResponse [
 	| view action |
-	view := views at: anId ifAbsent: [^ aResponse code: 404].
+	view := (self viewAt: anId) ifNil: [^ aResponse code: 404].
 	action := (self action: aString of: view) ifNil: [^ aResponse code: 404].
 	session do: [self send: action to: view from: aRequest].
 	aResponse content: view render
@@ -127,6 +127,11 @@ TwApp >> stream: anId into: aResponse [
 	aResponse
 		contentType: 'text/event-stream';
 		sendContentsBlock: [:socket | view stream: socket]
+]
+
+{ #category : 'views' }
+TwApp >> viewAt: anId [
+	^ (views at: (anId copyUpTo: $-) ifAbsent: [^ nil]) viewAt: anId
 ]
 
 { #category : 'checking' }

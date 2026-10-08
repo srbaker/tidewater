@@ -43,6 +43,19 @@ test('submitting a form posts its fields to its action', async ({ page }) => {
   expect(page.url()).toBe('http://tidewater.test/');
 });
 
+test('an action inside a child view posts to the child and morphs only the child', async ({ page }) => {
+  await page.route('http://tidewater.test/p1-1/increment', (route) =>
+    route.fulfill({ body: '<p>1</p><button tw-click="increment">+</button>' }));
+  await open(page, { view: '<p>outer</p><div tw-view="p1-1"><p>0</p><button tw-click="increment">+</button></div>' });
+
+  const posted = page.waitForRequest((request) => request.method() === 'POST');
+  await page.getByRole('button').click();
+
+  expect((await posted).url()).toBe('http://tidewater.test/p1-1/increment');
+  await expect(page.locator('[tw-view="p1-1"] p')).toHaveText('1');
+  await expect(page.locator('[tw-view="p1"] > p')).toHaveText('outer');
+});
+
 test('marks the view connected once its event stream opens', async ({ page }) => {
   await open(page);
 

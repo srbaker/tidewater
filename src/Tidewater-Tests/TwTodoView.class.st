@@ -3,7 +3,7 @@ Class {
 	#superclass : 'TwView',
 	#instVars : [
 		'list',
-		'error'
+		'form'
 	],
 	#category : 'Tidewater-Tests'
 }
@@ -13,18 +13,9 @@ TwTodoView class >> on: aList [
 	^ self new setList: aList
 ]
 
-{ #category : 'actions' }
-TwTodoView >> actions [
-	^ #(#add:)
-]
-
-{ #category : 'actions' }
-TwTodoView >> add: fields [
-	| item |
-	item := fields at: 'item' ifAbsent: [''].
-	item isEmpty ifTrue: [^ error := 'Item can''t be blank'].
-	error := nil.
-	list add: item
+{ #category : 'composing' }
+TwTodoView >> children [
+	^ {form}
 ]
 
 { #category : 'rendering' }
@@ -33,14 +24,13 @@ TwTodoView >> render [
 	html := WriteStream on: String new.
 	html nextPutAll: '<ul>'.
 	list items do: [:each | html nextPutAll: '<li>'; nextPutAll: each; nextPutAll: '</li>'].
-	html nextPutAll: '</ul>'.
-	error ifNotNil: [html nextPutAll: '<p>'; nextPutAll: error; nextPutAll: '</p>'].
-	^ html nextPutAll: '<form tw-submit="add"><input name="item"><button>Add</button></form>'; contents
+	^ html nextPutAll: '</ul>'; nextPutAll: (self render: form); contents
 ]
 
 { #category : 'initialization' }
 TwTodoView >> setList: aList [
-	list := aList
+	list := aList.
+	form := TwTodoForm on: aList
 ]
 
 { #category : 'watching' }
