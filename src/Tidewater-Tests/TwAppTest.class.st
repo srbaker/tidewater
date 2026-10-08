@@ -40,6 +40,22 @@ TwAppTest >> routerFor: aView in: aSession [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testDoesNotWarnAboutPushedChanges [
+	| counter session app listener warnings |
+	counter := TwCounter new.
+	session := TwMockSession new.
+	app := TwApp on: (TwCounterView on: counter) in: session.
+	warnings := WriteStream on: String new.
+	app warnTo: warnings.
+	listener := TwMockListener new.
+	app serve: listener on: 8888.
+	counter increment.
+	session change.
+	listener router handle: (self get: '/').
+	self assert: warnings contents isEmpty
+]
+
+{ #category : 'tests' }
 TwAppTest >> testListensWithRoomForBurstsOfConnections [
 	| listener |
 	listener := TwMockListener new.
@@ -65,23 +81,25 @@ TwAppTest >> testPostingAnUnknownActionIsNotFound [
 
 { #category : 'tests' }
 TwAppTest >> testPrefixesEveryLineOfAnEvent [
-	| lf |
+	| lf app |
 	lf := String with: Character lf.
+	app := TwApp on: (TwMockView rendering: '') in: TwMockSession new.
 	self
-		assert: (TwApp on: (TwMockView rendering: '<p>', lf, 'one', lf, '</p>')) event
+		assert: (app eventFor: '<p>', lf, 'one', lf, '</p>')
 		equals: 'data: <p>', lf, 'data: one', lf, 'data: </p>', lf, lf
 ]
 
 { #category : 'tests' }
 TwAppTest >> testPushesWhenAWatchedObjectChanges [
-	| app session listener socket |
+	| view app session listener socket |
 	session := TwMockSession new.
-	app := TwApp on: (TwCounterView on: TwCounter new) in: session.
+	view := TwCounterView on: TwCounter new.
+	app := TwApp on: view in: session.
 	listener := TwMockListener new.
 	app serve: listener on: 8888.
 	socket := TwMockSocket whileOpen: [session change].
 	(listener router handle: (self get: '/events')) sendResponseOn: socket.
-	self assert: socket written last equals: app event
+	self assert: socket written last equals: (app eventFor: view render)
 ]
 
 { #category : 'tests' }
@@ -156,6 +174,20 @@ TwAppTest >> testUsesTheRealSessionByDefault [
 	session := (TwApp on: (TwCounterView on: TwCounter new)) session.
 	self assert: session system identical: System.
 	self assert: session notifications identical: ObjectsCommittedNotification
+]
+
+{ #category : 'tests' }
+TwAppTest >> testWarnsWhenAPageShowsAChangeThatWasNeverPushed [
+	| counter app listener warnings |
+	counter := TwCounter new.
+	app := TwApp on: (TwCounterView on: counter) in: TwMockSession new.
+	warnings := WriteStream on: String new.
+	app warnTo: warnings.
+	listener := TwMockListener new.
+	app serve: listener on: 8888.
+	counter increment.
+	listener router handle: (self get: '/').
+	self assert: (warnings contents includesString: 'TwCounterView changed without a watched object changing')
 ]
 
 { #category : 'tests' }

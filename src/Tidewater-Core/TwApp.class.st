@@ -4,7 +4,9 @@ Class {
 	#instVars : [
 		'view',
 		'session',
-		'subscribers'
+		'subscribers',
+		'rendered',
+		'warnings'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -19,10 +21,22 @@ TwApp class >> on: aView in: aSession [
 	^ self new setView: aView session: aSession
 ]
 
+{ #category : 'checking' }
+TwApp >> checkForUnwatchedChanges [
+	| html |
+	warnings ifNil: [^ self].
+	html := view render.
+	html = rendered ifFalse: [
+		warnings
+			nextPutAll: view class name, ' changed without a watched object changing; watch more, or put it behind a TwRoot';
+			lf].
+	rendered := html
+]
+
 { #category : 'streaming' }
-TwApp >> event [
+TwApp >> eventFor: html [
 	| lines event |
-	lines := ReadStream on: view render.
+	lines := ReadStream on: html.
 	event := WriteStream on: String new.
 	[lines atEnd] whileFalse: [event nextPutAll: 'data: '; nextPutAll: (lines upTo: Character lf); lf].
 	^ event lf; contents
@@ -33,10 +47,17 @@ TwApp >> page [
 	^ '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view>', view render, '</div></body></html>'
 ]
 
+{ #category : 'handling' }
+TwApp >> pageInto: aResponse [
+	self checkForUnwatchedChanges.
+	aResponse content: self page
+]
+
 { #category : 'streaming' }
 TwApp >> push [
 	| event |
-	event := self event.
+	rendered := view render.
+	event := self eventFor: rendered.
 	subscribers do: [:each | each write: event]
 ]
 
@@ -48,7 +69,7 @@ TwApp >> renderInto: aResponse [
 { #category : 'handling' }
 TwApp >> router [
 	^ Router new
-		get: '/' do: [:request :response | response content: self page];
+		get: '/' do: [:request :response | self pageInto: response];
 		get: '/events' do: [:request :response | self streamInto: response];
 		get: '/:script' do: [:request :response :script | self script: script into: response];
 		post: '/:action' do: [:request :response :action | self run: action asSymbol into: response];
@@ -80,6 +101,7 @@ TwApp >> scriptsDirectory [
 
 { #category : 'serving' }
 TwApp >> serve: aListener on: aPort [
+	rendered := view render.
 	session watch: view watches then: [self push].
 	aListener port: aPort; listenBacklog: 200; router: self router; run
 ]
@@ -112,4 +134,9 @@ TwApp >> streamInto: aResponse [
 	aResponse
 		contentType: 'text/event-stream';
 		sendContentsBlock: [:socket | self stream: socket]
+]
+
+{ #category : 'checking' }
+TwApp >> warnTo: aStream [
+	warnings := aStream
 ]
