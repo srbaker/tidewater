@@ -1,0 +1,10 @@
+#!/bin/bash
+# Serve a fresh counter on the given port for the acceptance tests.
+# Needs the GemStone environment, as set up by Jasper's "Open Terminal".
+exec "$GEMSTONE/bin/topaz" -lq <<TOPAZ
+set user DataCurator pass ${TIDEWATER_STONE_PASSWORD:-swordfish} gemstone ${TIDEWATER_STONE:-gs64stone}
+login
+run
+(TwApp on: (TwCounterView on: TwCounter new)) serveOn: $1
+%
+TOPAZ
