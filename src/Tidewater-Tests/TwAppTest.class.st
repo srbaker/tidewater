@@ -56,6 +56,15 @@ TwAppTest >> testPostingAnUnknownActionIsNotFound [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testPrefixesEveryLineOfAnEvent [
+	| lf |
+	lf := String with: Character lf.
+	self
+		assert: (TwApp on: (TwMockView rendering: '<p>', lf, 'one', lf, '</p>')) event
+		equals: 'data: <p>', lf, 'data: one', lf, 'data: </p>', lf, lf
+]
+
+{ #category : 'tests' }
 TwAppTest >> testRunsActionsInARealTransactionByDefault [
 	| app |
 	app := TwApp on: (TwCounterView on: TwCounter new).

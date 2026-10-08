@@ -21,7 +21,11 @@ TwApp class >> on: aView in: aTransaction [
 
 { #category : 'streaming' }
 TwApp >> event [
-	^ 'data: ', view render, (String with: Character lf with: Character lf)
+	| lines event |
+	lines := ReadStream on: view render.
+	event := WriteStream on: String new.
+	[lines atEnd] whileFalse: [event nextPutAll: 'data: '; nextPutAll: (lines upTo: Character lf); lf].
+	^ event lf; contents
 ]
 
 { #category : 'rendering' }
