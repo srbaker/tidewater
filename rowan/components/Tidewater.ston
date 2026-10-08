@@ -1,0 +1,10 @@
+RwLoadComponent {
+	#name : 'Tidewater',
+	#projectNames : [ ],
+	#componentNames : [ ],
+	#packageNames : [
+		'Tidewater-Core',
+		'Tidewater-Tests'
+	],
+	#comment : ''
+}

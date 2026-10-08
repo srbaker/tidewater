@@ -1,0 +1,19 @@
+RwLoadSpecificationV2 {
+	#specName : 'Tidewater',
+	#projectName : 'Tidewater',
+	#projectAlias : 'tidewater',
+	#gitUrl : 'git@github.com:srbaker/tidewater.git',
+	#revision : 'master',
+	#projectSpecFile : 'rowan/project.ston',
+	#componentNames : [
+		'Tidewater'
+	],
+	#platformProperties : {
+		'gemstone' : {
+			'allusers' : {
+				#defaultSymbolDictName : 'Tidewater'
+			}
+		}
+	},
+	#comment : ''
+}
