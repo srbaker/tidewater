@@ -24,12 +24,35 @@ TwSessionTest >> testDoesNothingWhenNothingWatchedHasChanged [
 ]
 
 { #category : 'tests' }
+TwSessionTest >> testGivesUpCleanlyWhenCommitsKeepConflicting [
+	| system |
+	system := TwMockSystem new.
+	system failCommits: 1000.
+	self should: [(TwSession on: system) do: [system log add: #action]] raise: TwConflict.
+	self assert: system log last equals: #abortTransaction.
+	self assert: (system log occurrencesOf: #action) equals: 10
+]
+
+{ #category : 'tests' }
 TwSessionTest >> testKeepsPollingWhileWatching [
 	| session |
 	session := TwSession on: TwMockSystem new.
 	session whenChanged: [].
 	[self assert: session isPolling] ensure: [session stop].
 	self deny: session isPolling
+]
+
+{ #category : 'tests' }
+TwSessionTest >> testReactsOnceToABurstOfChanges [
+	| system session reactions |
+	system := TwMockSystem new.
+	session := TwSession on: system.
+	reactions := 0.
+	session whenChanged: [reactions := reactions + 1].
+	[system commitChangeTo: #a; commitChangeTo: #b; commitChangeTo: #a.
+	session poll; poll.
+	self assert: reactions equals: 1]
+		ensure: [session stop]
 ]
 
 { #category : 'tests' }
@@ -44,4 +67,15 @@ TwSessionTest >> testRefreshesAndReactsWhenAWatchedObjectHasChanged [
 	self assert: system watched equals: #(#a #b).
 	self assert: system log asArray equals: #(#addAllToNotifySet: #signaledObjects #abortTransaction #changed)]
 		ensure: [session stop]
+]
+
+{ #category : 'tests' }
+TwSessionTest >> testRetriesWhenACommitConflicts [
+	| system |
+	system := TwMockSystem new.
+	system failCommits: 2.
+	(TwSession on: system) do: [system log add: #action].
+	self
+		assert: system log asArray
+		equals: #(#abortTransaction #action #commitTransaction #abortTransaction #action #commitTransaction #abortTransaction #action #commitTransaction)
 ]

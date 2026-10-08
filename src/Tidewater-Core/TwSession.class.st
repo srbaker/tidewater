@@ -16,9 +16,12 @@ TwSession class >> on: aSystem [
 
 { #category : 'transactions' }
 TwSession >> do: aBlock [
+	10 timesRepeat: [
+		system abortTransaction.
+		aBlock value.
+		system commitTransaction ifTrue: [^ self]].
 	system abortTransaction.
-	aBlock value.
-	system commitTransaction
+	TwConflict signal: 'Gave up after 10 conflicting commits'
 ]
 
 { #category : 'watching' }

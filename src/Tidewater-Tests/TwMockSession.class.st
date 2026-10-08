@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'ran',
 		'watched',
-		'changed'
+		'changed',
+		'conflicting'
 	],
 	#category : 'Tidewater-Tests'
 }
@@ -12,6 +13,11 @@ Class {
 { #category : 'instance creation' }
 TwMockSession class >> new [
 	^ super new initialize
+]
+
+{ #category : 'transactions' }
+TwMockSession >> beConflicting [
+	conflicting := true
 ]
 
 { #category : 'watching' }
@@ -22,6 +28,7 @@ TwMockSession >> change [
 { #category : 'transactions' }
 TwMockSession >> do: aBlock [
 	ran := true.
+	conflicting = true ifTrue: [^ TwConflict signal: 'conflicting'].
 	aBlock value.
 	self change
 ]

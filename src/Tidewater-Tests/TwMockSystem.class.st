@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'log',
 		'watched',
-		'signaled'
+		'signaled',
+		'failures'
 	],
 	#category : 'Tidewater-Tests'
 }
@@ -33,7 +34,14 @@ TwMockSystem >> commitChangeTo: anObject [
 { #category : 'transactions' }
 TwMockSystem >> commitTransaction [
 	log add: #commitTransaction.
-	^ true
+	(failures ifNil: [0]) > 0 ifFalse: [^ true].
+	failures := failures - 1.
+	^ false
+]
+
+{ #category : 'transactions' }
+TwMockSystem >> failCommits: anInteger [
+	failures := anInteger
 ]
 
 { #category : 'initialization' }

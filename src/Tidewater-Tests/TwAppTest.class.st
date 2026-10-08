@@ -68,6 +68,15 @@ TwAppTest >> setUp [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testAnswersConflictWhenAnActionCannotCommit [
+	| router id |
+	session beConflicting.
+	router := self routerOn: TwCounter new.
+	id := self openViewWith: router.
+	self assert: (router handle: (self post: '/', id, '/increment')) code equals: 409
+]
+
+{ #category : 'tests' }
 TwAppTest >> testDoesNotWarnAboutPushedChanges [
 	| counter app warnings router |
 	counter := TwCounter new.

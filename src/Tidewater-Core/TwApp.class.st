@@ -71,7 +71,9 @@ TwApp >> run: aString on: anId with: aRequest into: aResponse [
 	| view action |
 	view := (self viewAt: anId) ifNil: [^ aResponse code: 404].
 	action := (self action: aString of: view) ifNil: [^ aResponse code: 404].
-	session do: [self send: action to: view from: aRequest].
+	[session do: [self send: action to: view from: aRequest]]
+		on: TwConflict
+		do: [:conflict | ^ aResponse code: 409].
 	aResponse content: view render
 ]
 
