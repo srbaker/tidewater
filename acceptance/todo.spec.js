@@ -47,3 +47,9 @@ test('typing a filter narrows that page\'s list as you type', async ({ browser }
   await expect(one.getByRole('searchbox')).toHaveValue('mi');
   await expect(two.getByRole('listitem')).toHaveText(['milk', 'eggs']);
 });
+
+test('the item input is ready to type into when the page opens', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('textbox')).toBeFocused();
+});

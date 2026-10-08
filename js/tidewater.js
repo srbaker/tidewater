@@ -1,8 +1,24 @@
 const root = () => document.querySelector('[tw-view]');
+const hooks = {};
+
+const call = (element, callback) => hooks[element.getAttribute('tw-hook')]?.[callback]?.(element);
+const hooked = (node) => node.nodeType === Node.ELEMENT_NODE
+  ? [node, ...node.querySelectorAll('[tw-hook]')].filter((element) => element.hasAttribute('tw-hook'))
+  : [];
+
 const morph = (view, html) => morphdom(view, `<div>${html}</div>`, {
   childrenOnly: true,
   onBeforeElUpdated: (element) => element !== document.activeElement,
+  onNodeAdded: (node) => { hooked(node).forEach((element) => call(element, 'mounted')); return node; },
+  onElUpdated: (element) => { if (element.hasAttribute('tw-hook')) call(element, 'updated'); },
 });
+
+window.tidewater = {
+  hook(name, callbacks) {
+    hooks[name] = callbacks;
+    document.querySelectorAll(`[tw-hook="${name}"]`).forEach((element) => call(element, 'mounted'));
+  },
+};
 
 async function run(element, action, fields = '') {
   const view = element.closest('[tw-view]');

@@ -2,8 +2,8 @@
 # Serve an example app on a port for the acceptance tests: acceptance-server counter|todo PORT
 # Needs the GemStone environment, as set up by Jasper's "Open Terminal".
 case "$1" in
-  counter) model='TwCounter'; view='TwCounterView' ;;
-  todo) model='TwTodoList'; view='TwTodoView' ;;
+  counter) model='TwCounter'; view='TwCounterView'; scripts='' ;;
+  todo) model='TwTodoList'; view='TwTodoView'; scripts="script: 'examples/todo.js';" ;;
   *) echo "usage: $0 counter|todo PORT" >&2; exit 2 ;;
 esac
 exec "$GEMSTONE/bin/topaz" -lq <<TOPAZ
@@ -12,6 +12,6 @@ login
 run
 UserGlobals at: #TidewaterAcceptanceModel put: $model new.
 System commitTransaction.
-(TwApp on: [$view on: (UserGlobals at: #TidewaterAcceptanceModel)]) serveOn: $2
+(TwApp on: [$view on: (UserGlobals at: #TidewaterAcceptanceModel)]) $scripts serveOn: $2
 %
 TOPAZ

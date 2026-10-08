@@ -5,7 +5,8 @@ Class {
 		'factory',
 		'session',
 		'views',
-		'warnings'
+		'warnings',
+		'scripts'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -48,7 +49,7 @@ TwApp >> openViewInto: aResponse [
 	view id: self newViewId.
 	views at: view id put: view.
 	session watch: view allWatches.
-	aResponse content: view document
+	aResponse content: (view documentWith: scripts)
 ]
 
 { #category : 'streaming' }
@@ -77,6 +78,11 @@ TwApp >> run: aString on: anId with: aRequest into: aResponse [
 	aResponse content: view render
 ]
 
+{ #category : 'scripts' }
+TwApp >> script: aPath [
+	scripts add: aPath
+]
+
 { #category : 'handling' }
 TwApp >> script: aFilename into: aResponse [
 	(self scripts includes: aFilename) ifFalse: [^ aResponse code: 404].
@@ -85,7 +91,7 @@ TwApp >> script: aFilename into: aResponse [
 
 { #category : 'scripts' }
 TwApp >> scripts [
-	^ #('morphdom.js' 'tidewater.js')
+	^ scripts
 ]
 
 { #category : 'scripts' }
@@ -119,7 +125,8 @@ TwApp >> session [
 TwApp >> setFactory: aBlock session: aSession [
 	factory := aBlock.
 	session := aSession.
-	views := Dictionary new
+	views := Dictionary new.
+	scripts := OrderedCollection with: 'morphdom.js' with: 'tidewater.js'
 ]
 
 { #category : 'handling' }

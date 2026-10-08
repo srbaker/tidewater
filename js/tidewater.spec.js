@@ -100,3 +100,29 @@ test('morphs pushed events into the view', async ({ page }) => {
 
   await expect(page.locator('p')).toHaveText('5');
 });
+
+test('a hook is mounted on elements that are already on the page', async ({ page }) => {
+  await open(page, { view: '<input tw-hook="mark">' });
+
+  await page.evaluate(() => tidewater.hook('mark', { mounted: (element) => { element.value = 'mounted'; } }));
+
+  await expect(page.getByRole('textbox')).toHaveValue('mounted');
+});
+
+test('a hook is mounted on elements a morph adds, and told when a morph updates them', async ({ page }) => {
+  await page.route('http://tidewater.test/p1/add', (route) =>
+    route.fulfill({ body: '<p tw-hook="mark" class="new">one</p><button tw-click="change">+</button>' }));
+  await page.route('http://tidewater.test/p1/change', (route) =>
+    route.fulfill({ body: '<p tw-hook="mark" class="changed">one</p><button tw-click="change">+</button>' }));
+  await open(page, { view: '<button tw-click="add">+</button>' });
+  await page.evaluate(() => tidewater.hook('mark', {
+    mounted: (element) => { element.dataset.mounted = 'yes'; },
+    updated: (element) => { element.dataset.updated = 'yes'; },
+  }));
+
+  await page.getByRole('button').click();
+  await expect(page.locator('p[data-mounted="yes"]')).toHaveCount(1);
+  await page.getByRole('button').click();
+
+  await expect(page.locator('p.changed[data-updated="yes"]')).toHaveCount(1);
+});

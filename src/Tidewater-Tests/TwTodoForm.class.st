@@ -32,7 +32,7 @@ TwTodoForm >> render [
 	| html |
 	html := WriteStream on: String new.
 	error ifNotNil: [html nextPutAll: '<p>'; nextPutAll: error; nextPutAll: '</p>'].
-	^ html nextPutAll: '<form tw-submit="add"><input name="item"><button>Add</button></form>'; contents
+	^ html nextPutAll: '<form tw-submit="add"><input name="item" tw-hook="autofocus"><button>Add</button></form>'; contents
 ]
 
 { #category : 'initialization' }

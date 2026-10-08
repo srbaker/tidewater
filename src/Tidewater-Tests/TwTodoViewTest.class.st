@@ -63,5 +63,5 @@ TwTodoViewTest >> testRendersItsItemsAndAForm [
 	view id: 'v'.
 	self
 		assert: view render
-		equals: '<input type="search" name="filter" tw-input="filter" tw-debounce="200" value=""><ul><li>milk</li></ul><div tw-view="v-1"><form tw-submit="add"><input name="item"><button>Add</button></form></div>'
+		equals: '<input type="search" name="filter" tw-input="filter" tw-debounce="200" value=""><ul><li>milk</li></ul><div tw-view="v-1"><form tw-submit="add"><input name="item" tw-hook="autofocus"><button>Add</button></form></div>'
 ]

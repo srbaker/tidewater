@@ -9,7 +9,7 @@ TwViewTest >> testDoesNotWarnAboutPushedChanges [
 	| counter view warnings |
 	counter := TwCounter new.
 	view := TwCounterView on: counter.
-	view id: 'abc'; document.
+	view id: 'abc'; documentWith: #().
 	counter increment.
 	view push.
 	warnings := WriteStream on: String new.
@@ -73,7 +73,7 @@ TwViewTest >> testRendersADocumentCarryingItsId [
 	view := TwCounterView on: TwCounter new.
 	view id: 'abc'.
 	self
-		assert: view document
+		assert: (view documentWith: #('morphdom.js' 'tidewater.js'))
 		equals: '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view="abc">', view render, '</div></body></html>'
 ]
 
@@ -118,7 +118,7 @@ TwViewTest >> testWarnsAboutChangesThatWereNeverPushed [
 	| counter view warnings |
 	counter := TwCounter new.
 	view := TwCounterView on: counter.
-	view id: 'abc'; document.
+	view id: 'abc'; documentWith: #().
 	counter increment.
 	warnings := WriteStream on: String new.
 	view checkForUnwatchedChangesTo: warnings.

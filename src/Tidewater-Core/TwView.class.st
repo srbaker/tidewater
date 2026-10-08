@@ -43,9 +43,13 @@ TwView >> children [
 ]
 
 { #category : 'rendering' }
-TwView >> document [
+TwView >> documentWith: scripts [
+	| html |
 	rendered := self render.
-	^ '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view="', id, '">', rendered, '</div></body></html>'
+	html := WriteStream on: String new.
+	html nextPutAll: '<!DOCTYPE html><html><head>'.
+	scripts do: [:each | html nextPutAll: '<script src="/', each, '" defer></script>'].
+	^ html nextPutAll: '</head><body><div tw-view="', id, '">', rendered, '</div></body></html>'; contents
 ]
 
 { #category : 'rendering' }

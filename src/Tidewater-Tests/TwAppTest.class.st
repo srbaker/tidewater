@@ -104,6 +104,19 @@ TwAppTest >> testGivesEachVisitAFreshViewWithAnUnguessableId [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testIncludesAndServesTheAppsOwnScripts [
+	| app router html |
+	app := TwApp on: [TwCounterView on: TwCounter new] in: session.
+	app script: 'examples/todo.js'.
+	router := self routerFor: app.
+	html := self bodyOf: (router handle: (self get: '/')).
+	self assert: (html includesString: '<script src="/tidewater.js" defer></script><script src="/examples/todo.js" defer></script>').
+	self
+		assert: (self bodyOf: (router handle: (self get: '/examples/todo.js')))
+		equals: ((Rowan projectNamed: 'Tidewater') repositoryRoot / 'js' / 'examples' / 'todo.js') contents
+]
+
+{ #category : 'tests' }
 TwAppTest >> testPassesPostedFieldsToActionsThatTakeThem [
 	| list router id |
 	list := TwTodoList new.
