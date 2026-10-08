@@ -14,7 +14,7 @@ TwCounterView class >> on: aCounter [
 
 { #category : 'actions' }
 TwCounterView >> actions [
-	^ #(#increment)
+	^ #(#increment #reset)
 ]
 
 { #category : 'actions' }
@@ -24,7 +24,12 @@ TwCounterView >> increment [
 
 { #category : 'rendering' }
 TwCounterView >> render [
-	^ '<p>', counter count printString, '</p>'
+	^ '<p>', counter count printString, '</p><button tw-click="increment">+</button>'
+]
+
+{ #category : 'actions' }
+TwCounterView >> reset [
+	counter reset
 ]
 
 { #category : 'initialization' }

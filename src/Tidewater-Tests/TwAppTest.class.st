@@ -41,10 +41,10 @@ TwAppTest >> routerFor: aView in: aTransaction [
 
 { #category : 'tests' }
 TwAppTest >> testPostingAnActionUpdatesTheView [
-	| counter router |
+	| counter view |
 	counter := TwCounter new.
-	router := self routerFor: (TwCounterView on: counter).
-	self assert: (self bodyOf: (router handle: (self post: '/increment'))) equals: '<p>1</p>'.
+	view := TwCounterView on: counter.
+	self assert: (self bodyOf: ((self routerFor: view) handle: (self post: '/increment'))) equals: view render.
 	self assert: counter count equals: 1
 ]
 
@@ -71,12 +71,37 @@ TwAppTest >> testRunsActionsInATransaction [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testServesItsScripts [
+	| router |
+	router := self routerFor: (TwCounterView on: TwCounter new).
+	self assert: ((self bodyOf: (router handle: (self get: '/tidewater.js'))) beginsWith: 'document.addEventListener').
+	self assert: ((self bodyOf: (router handle: (self get: '/morphdom.js'))) beginsWith: '/*! morphdom')
+]
+
+{ #category : 'tests' }
+TwAppTest >> testServesItsViewInAPage [
+	| view |
+	view := TwCounterView on: TwCounter new.
+	self
+		assert: (self bodyOf: ((self routerFor: view) handle: (self get: '/')))
+		equals: '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view>', view render, '</div></body></html>'
+]
+
+{ #category : 'tests' }
 TwAppTest >> testServesItsViewWithAListenerOnAPort [
-	| app listener |
-	app := TwApp on: (TwCounterView on: TwCounter new).
+	| view listener |
+	view := TwCounterView on: TwCounter new.
 	listener := TwMockListener new.
-	app serve: listener on: 8888.
+	(TwApp on: view) serve: listener on: 8888.
 	self assert: listener port equals: 8888.
 	self assert: listener isRunning.
-	self assert: (self bodyOf: (listener router handle: (self get: '/'))) equals: '<p>0</p>'
+	self assert: ((self bodyOf: (listener router handle: (self get: '/'))) includesString: view render)
+]
+
+{ #category : 'tests' }
+TwAppTest >> testServesNoOtherFiles [
+	| router |
+	router := self routerFor: (TwCounterView on: TwCounter new).
+	self assert: (router handle: (self get: '/tidewater.spec.js')) code equals: 404.
+	self assert: (router handle: (self get: '/../package.json')) code equals: 404
 ]

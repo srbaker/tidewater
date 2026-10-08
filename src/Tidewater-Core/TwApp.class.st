@@ -18,6 +18,11 @@ TwApp class >> on: aView in: aTransaction [
 	^ self new setView: aView transaction: aTransaction
 ]
 
+{ #category : 'rendering' }
+TwApp >> page [
+	^ '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view>', view render, '</div></body></html>'
+]
+
 { #category : 'handling' }
 TwApp >> renderInto: aResponse [
 	aResponse content: view render
@@ -26,7 +31,8 @@ TwApp >> renderInto: aResponse [
 { #category : 'handling' }
 TwApp >> router [
 	^ Router new
-		get: '/' do: [:request :response | self renderInto: response];
+		get: '/' do: [:request :response | response content: self page];
+		get: '/:script' do: [:request :response :script | self script: script into: response];
 		post: '/:action' do: [:request :response :action | self run: action asSymbol into: response];
 		yourself
 ]
@@ -36,6 +42,22 @@ TwApp >> run: anAction into: aResponse [
 	(view actions includes: anAction) ifFalse: [^ aResponse code: 404].
 	transaction do: [view perform: anAction].
 	self renderInto: aResponse
+]
+
+{ #category : 'handling' }
+TwApp >> script: aFilename into: aResponse [
+	(self scripts includes: aFilename) ifFalse: [^ aResponse code: 404].
+	aResponse content: (self scriptsDirectory / aFilename) contents
+]
+
+{ #category : 'scripts' }
+TwApp >> scripts [
+	^ #('morphdom.js' 'tidewater.js')
+]
+
+{ #category : 'scripts' }
+TwApp >> scriptsDirectory [
+	^ (Rowan projectNamed: 'Tidewater') repositoryRoot / 'js'
 ]
 
 { #category : 'serving' }

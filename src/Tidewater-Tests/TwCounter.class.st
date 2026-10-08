@@ -24,5 +24,10 @@ TwCounter >> increment [
 
 { #category : 'initialization' }
 TwCounter >> initialize [
+	self reset
+]
+
+{ #category : 'counting' }
+TwCounter >> reset [
 	count := 0
 ]
