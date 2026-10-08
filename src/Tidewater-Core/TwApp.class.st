@@ -2,14 +2,20 @@ Class {
 	#name : 'TwApp',
 	#superclass : 'Object',
 	#instVars : [
-		'view'
+		'view',
+		'transaction'
 	],
 	#category : 'Tidewater-Core'
 }
 
 { #category : 'instance creation' }
 TwApp class >> on: aView [
-	^ self new setView: aView
+	^ self on: aView in: (TwTransaction on: System)
+]
+
+{ #category : 'instance creation' }
+TwApp class >> on: aView in: aTransaction [
+	^ self new setView: aView transaction: aTransaction
 ]
 
 { #category : 'handling' }
@@ -28,7 +34,7 @@ TwApp >> router [
 { #category : 'handling' }
 TwApp >> run: anAction into: aResponse [
 	(view actions includes: anAction) ifFalse: [^ aResponse code: 404].
-	view perform: anAction.
+	transaction do: [view perform: anAction].
 	self renderInto: aResponse
 ]
 
@@ -43,6 +49,12 @@ TwApp >> serveOn: aPort [
 ]
 
 { #category : 'initialization' }
-TwApp >> setView: aView [
-	view := aView
+TwApp >> setView: aView transaction: aTransaction [
+	view := aView.
+	transaction := aTransaction
+]
+
+{ #category : 'accessing' }
+TwApp >> transaction [
+	^ transaction
 ]

@@ -28,9 +28,14 @@ TwAppTest >> post: aPath [
 
 { #category : 'private' }
 TwAppTest >> routerFor: aView [
+	^ self routerFor: aView in: TwMockTransaction new
+]
+
+{ #category : 'private' }
+TwAppTest >> routerFor: aView in: aTransaction [
 	| listener |
 	listener := TwMockListener new.
-	(TwApp on: aView) serve: listener on: 8888.
+	(TwApp on: aView in: aTransaction) serve: listener on: 8888.
 	^ listener router
 ]
 
@@ -48,6 +53,21 @@ TwAppTest >> testPostingAnUnknownActionIsNotFound [
 	| router |
 	router := self routerFor: (TwCounterView on: TwCounter new).
 	self assert: (router handle: (self post: '/render')) code equals: 404
+]
+
+{ #category : 'tests' }
+TwAppTest >> testRunsActionsInARealTransactionByDefault [
+	| app |
+	app := TwApp on: (TwCounterView on: TwCounter new).
+	self assert: app transaction system identical: System
+]
+
+{ #category : 'tests' }
+TwAppTest >> testRunsActionsInATransaction [
+	| transaction |
+	transaction := TwMockTransaction new.
+	(self routerFor: (TwCounterView on: TwCounter new) in: transaction) handle: (self post: '/increment').
+	self assert: transaction hasRun
 ]
 
 { #category : 'tests' }
