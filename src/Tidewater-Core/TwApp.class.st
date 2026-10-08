@@ -3,7 +3,8 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'view',
-		'transaction'
+		'transaction',
+		'subscribers'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -18,9 +19,21 @@ TwApp class >> on: aView in: aTransaction [
 	^ self new setView: aView transaction: aTransaction
 ]
 
+{ #category : 'streaming' }
+TwApp >> event [
+	^ 'data: ', view render, (String with: Character lf with: Character lf)
+]
+
 { #category : 'rendering' }
 TwApp >> page [
 	^ '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view>', view render, '</div></body></html>'
+]
+
+{ #category : 'streaming' }
+TwApp >> push [
+	| event |
+	event := self event.
+	subscribers do: [:each | each write: event]
 ]
 
 { #category : 'handling' }
@@ -32,6 +45,7 @@ TwApp >> renderInto: aResponse [
 TwApp >> router [
 	^ Router new
 		get: '/' do: [:request :response | response content: self page];
+		get: '/events' do: [:request :response | self streamInto: response];
 		get: '/:script' do: [:request :response :script | self script: script into: response];
 		post: '/:action' do: [:request :response :action | self run: action asSymbol into: response];
 		yourself
@@ -41,6 +55,7 @@ TwApp >> router [
 TwApp >> run: anAction into: aResponse [
 	(view actions includes: anAction) ifFalse: [^ aResponse code: 404].
 	transaction do: [view perform: anAction].
+	self push.
 	self renderInto: aResponse
 ]
 
@@ -73,7 +88,21 @@ TwApp >> serveOn: aPort [
 { #category : 'initialization' }
 TwApp >> setView: aView transaction: aTransaction [
 	view := aView.
-	transaction := aTransaction
+	transaction := aTransaction.
+	subscribers := IdentitySet new
+]
+
+{ #category : 'streaming' }
+TwApp >> stream: aSocket [
+	subscribers add: aSocket.
+	[aSocket readWillNotBlockWithin: -1] ensure: [subscribers remove: aSocket]
+]
+
+{ #category : 'streaming' }
+TwApp >> streamInto: aResponse [
+	aResponse
+		contentType: 'text/event-stream';
+		sendContentsBlock: [:socket | self stream: socket]
 ]
 
 { #category : 'accessing' }

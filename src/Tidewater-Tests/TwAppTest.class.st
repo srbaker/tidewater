@@ -72,10 +72,11 @@ TwAppTest >> testRunsActionsInATransaction [
 
 { #category : 'tests' }
 TwAppTest >> testServesItsScripts [
-	| router |
+	| router directory |
 	router := self routerFor: (TwCounterView on: TwCounter new).
-	self assert: ((self bodyOf: (router handle: (self get: '/tidewater.js'))) beginsWith: 'document.addEventListener').
-	self assert: ((self bodyOf: (router handle: (self get: '/morphdom.js'))) beginsWith: '/*! morphdom')
+	directory := (Rowan projectNamed: 'Tidewater') repositoryRoot / 'js'.
+	#('tidewater.js' 'morphdom.js') do: [:each |
+		self assert: (self bodyOf: (router handle: (self get: '/', each))) equals: (directory / each) contents]
 ]
 
 { #category : 'tests' }
@@ -104,4 +105,25 @@ TwAppTest >> testServesNoOtherFiles [
 	router := self routerFor: (TwCounterView on: TwCounter new).
 	self assert: (router handle: (self get: '/tidewater.spec.js')) code equals: 404.
 	self assert: (router handle: (self get: '/../package.json')) code equals: 404
+]
+
+{ #category : 'tests' }
+TwAppTest >> testStopsStreamingWhenTheClientLeaves [
+	| router socket |
+	router := self routerFor: (TwCounterView on: TwCounter new).
+	socket := TwMockSocket whileOpen: [].
+	(router handle: (self get: '/events')) sendResponseOn: socket.
+	router handle: (self post: '/increment').
+	self assert: socket written size equals: 1
+]
+
+{ #category : 'tests' }
+TwAppTest >> testStreamsTheViewWhenAnActionRuns [
+	| view router socket |
+	view := TwCounterView on: TwCounter new.
+	router := self routerFor: view.
+	socket := TwMockSocket whileOpen: [router handle: (self post: '/increment')].
+	(router handle: (self get: '/events')) sendResponseOn: socket.
+	self assert: (socket written first includesString: 'Content-Type: text/event-stream').
+	self assert: socket written last equals: 'data: ', view render, (String with: Character lf with: Character lf)
 ]
