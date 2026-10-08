@@ -13,15 +13,20 @@ TwApp class >> on: aView [
 ]
 
 { #category : 'handling' }
-TwApp >> handle: aRequest [
-	^ self router handle: aRequest
-]
-
-{ #category : 'handling' }
 TwApp >> router [
 	^ Router new
 		get: '/' do: [:request :response | response content: view render];
 		yourself
+]
+
+{ #category : 'serving' }
+TwApp >> serve: aListener on: aPort [
+	aListener port: aPort; router: self router; run
+]
+
+{ #category : 'serving' }
+TwApp >> serveOn: aPort [
+	self serve: HttpListener new on: aPort
 ]
 
 { #category : 'initialization' }

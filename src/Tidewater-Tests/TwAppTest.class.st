@@ -22,8 +22,12 @@ TwAppTest >> get: aPath [
 ]
 
 { #category : 'tests' }
-TwAppTest >> testServesItsViewAtTheRoot [
-	| app |
+TwAppTest >> testServesItsViewWithAListenerOnAPort [
+	| app listener |
 	app := TwApp on: (TwCounterView on: TwCounter new).
-	self assert: (self bodyOf: (app handle: (self get: '/'))) equals: '<p>0</p>'
+	listener := TwMockListener new.
+	app serve: listener on: 8888.
+	self assert: listener port equals: 8888.
+	self assert: listener isRunning.
+	self assert: (self bodyOf: (listener router handle: (self get: '/'))) equals: '<p>0</p>'
 ]
