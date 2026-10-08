@@ -5,6 +5,17 @@ Class {
 }
 
 { #category : 'tests' }
+TwRootTest >> testClearingATodoListEmptiesItAndTouchesIt [
+	| list before |
+	list := TwTodoList new.
+	list add: 'milk'.
+	before := list version.
+	list clear.
+	self assert: list items isEmpty.
+	self deny: list version = before
+]
+
+{ #category : 'tests' }
 TwRootTest >> testTouchingChangesTheRoot [
 	| root before |
 	root := TwRoot new.

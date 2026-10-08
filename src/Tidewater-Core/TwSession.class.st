@@ -3,7 +3,8 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'system',
-		'notifications'
+		'notifications',
+		'heartbeat'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -25,6 +26,11 @@ TwSession >> do: aBlock [
 	system commitTransaction
 ]
 
+{ #category : 'watching' }
+TwSession >> isAwake [
+	^ heartbeat notNil
+]
+
 { #category : 'accessing' }
 TwSession >> notifications [
 	^ notifications
@@ -36,16 +42,27 @@ TwSession >> setSystem: aSystem notifications: aNotificationClass [
 	notifications := aNotificationClass
 ]
 
+{ #category : 'watching' }
+TwSession >> stop [
+	heartbeat terminate.
+	heartbeat := nil
+]
+
 { #category : 'accessing' }
 TwSession >> system [
 	^ system
 ]
 
 { #category : 'watching' }
-TwSession >> watch: objects then: aBlock [
-	system addAllToNotifySet: objects; enableSignaledObjectsError.
+TwSession >> watch: objects [
+	system addAllToNotifySet: objects; enableSignaledObjectsError
+]
+
+{ #category : 'watching' }
+TwSession >> whenChanged: aBlock [
 	notifications addDefaultHandler: [:notification |
 		system signaledObjects; enableSignaledObjectsError.
 		[system abortTransaction. aBlock value] fork.
-		notification resume]
+		notification resume].
+	heartbeat := [[true] whileTrue: [(Delay forMilliseconds: 100) wait]] fork
 ]

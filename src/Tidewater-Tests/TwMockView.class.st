@@ -1,6 +1,6 @@
 Class {
 	#name : 'TwMockView',
-	#superclass : 'Object',
+	#superclass : 'TwView',
 	#instVars : [
 		'html'
 	],
@@ -20,9 +20,4 @@ TwMockView >> render [
 { #category : 'initialization' }
 TwMockView >> setHtml: aString [
 	html := aString
-]
-
-{ #category : 'watching' }
-TwMockView >> watches [
-	^ #()
 ]

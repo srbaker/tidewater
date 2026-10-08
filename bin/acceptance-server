@@ -1,12 +1,17 @@
 #!/bin/bash
-# Serve a persistent counter on the given port for the acceptance tests.
+# Serve an example app on a port for the acceptance tests: acceptance-server counter|todo PORT
 # Needs the GemStone environment, as set up by Jasper's "Open Terminal".
+case "$1" in
+  counter) model='TwCounter'; view='TwCounterView' ;;
+  todo) model='TwTodoList'; view='TwTodoView' ;;
+  *) echo "usage: $0 counter|todo PORT" >&2; exit 2 ;;
+esac
 exec "$GEMSTONE/bin/topaz" -lq <<TOPAZ
 set user DataCurator pass ${TIDEWATER_STONE_PASSWORD:-swordfish} gemstone ${TIDEWATER_STONE:-gs64stone}
 login
 run
-UserGlobals at: #TidewaterAcceptanceCounter put: TwCounter new.
+UserGlobals at: #TidewaterAcceptanceModel put: $model new.
 System commitTransaction.
-(TwApp on: (TwCounterView on: (UserGlobals at: #TidewaterAcceptanceCounter))) serveOn: $1
+(TwApp on: [$view on: (UserGlobals at: #TidewaterAcceptanceModel)]) serveOn: $2
 %
 TOPAZ

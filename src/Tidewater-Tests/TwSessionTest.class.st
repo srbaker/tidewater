@@ -13,15 +13,27 @@ TwSessionTest >> testAbortsRunsAndCommits [
 ]
 
 { #category : 'tests' }
+TwSessionTest >> testKeepsTheGemAwakeWhileWatching [
+	| session |
+	session := TwSession on: TwMockSystem new notifying: TwMockNotifications new.
+	session whenChanged: [].
+	[self assert: session isAwake] ensure: [session stop].
+	self deny: session isAwake
+]
+
+{ #category : 'tests' }
 TwSessionTest >> testWatchesObjectsAndRefreshesWhenTheyChange [
-	| system notifications |
+	| system notifications session |
 	system := TwMockSystem new.
 	notifications := TwMockNotifications new.
-	(TwSession on: system notifying: notifications) watch: #(#a #b) then: [system log add: #changed].
+	session := TwSession on: system notifying: notifications.
+	session whenChanged: [system log add: #changed].
+	[session watch: #(#a #b).
 	notifications signal.
 	Processor yield.
 	self assert: system watched equals: #(#a #b).
 	self
 		assert: system log asArray
-		equals: #(#addAllToNotifySet: #enableSignaledObjectsError #signaledObjects #enableSignaledObjectsError #abortTransaction #changed)
+		equals: #(#addAllToNotifySet: #enableSignaledObjectsError #signaledObjects #enableSignaledObjectsError #abortTransaction #changed)]
+		ensure: [session stop]
 ]

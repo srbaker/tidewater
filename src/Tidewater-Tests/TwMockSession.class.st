@@ -9,6 +9,11 @@ Class {
 	#category : 'Tidewater-Tests'
 }
 
+{ #category : 'instance creation' }
+TwMockSession class >> new [
+	^ super new initialize
+]
+
 { #category : 'watching' }
 TwMockSession >> change [
 	changed ifNotNil: [:block | block value]
@@ -26,13 +31,22 @@ TwMockSession >> hasRun [
 	^ ran = true
 ]
 
+{ #category : 'initialization' }
+TwMockSession >> initialize [
+	watched := OrderedCollection new
+]
+
 { #category : 'watching' }
-TwMockSession >> watch: objects then: aBlock [
-	watched := objects.
-	changed := aBlock
+TwMockSession >> watch: objects [
+	watched addAll: objects
 ]
 
 { #category : 'accessing' }
 TwMockSession >> watched [
 	^ watched
+]
+
+{ #category : 'watching' }
+TwMockSession >> whenChanged: aBlock [
+	changed := aBlock
 ]

@@ -2,85 +2,77 @@ Class {
 	#name : 'TwApp',
 	#superclass : 'Object',
 	#instVars : [
-		'view',
+		'factory',
 		'session',
-		'subscribers',
-		'rendered',
+		'views',
 		'warnings'
 	],
 	#category : 'Tidewater-Core'
 }
 
 { #category : 'instance creation' }
-TwApp class >> on: aView [
-	^ self on: aView in: (TwSession on: System)
+TwApp class >> on: aBlock [
+	^ self on: aBlock in: (TwSession on: System)
 ]
 
 { #category : 'instance creation' }
-TwApp class >> on: aView in: aSession [
-	^ self new setView: aView session: aSession
+TwApp class >> on: aBlock in: aSession [
+	^ self new setFactory: aBlock session: aSession
+]
+
+{ #category : 'actions' }
+TwApp >> action: aString of: aView [
+	^ aView actions
+		detect: [:each | each = aString asSymbol or: [each = (aString, ':') asSymbol]]
+		ifNone: [nil]
 ]
 
 { #category : 'checking' }
 TwApp >> checkForUnwatchedChanges [
-	| html |
 	warnings ifNil: [^ self].
-	html := view render.
-	html = rendered ifFalse: [
-		warnings
-			nextPutAll: view class name, ' changed without a watched object changing; watch more, or put it behind a TwRoot';
-			lf].
-	rendered := html
+	views do: [:each | each checkForUnwatchedChangesTo: warnings]
 ]
 
-{ #category : 'streaming' }
-TwApp >> eventFor: html [
-	| lines event |
-	lines := ReadStream on: html.
-	event := WriteStream on: String new.
-	[lines atEnd] whileFalse: [event nextPutAll: 'data: '; nextPutAll: (lines upTo: Character lf); lf].
-	^ event lf; contents
-]
-
-{ #category : 'rendering' }
-TwApp >> page [
-	^ '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view>', view render, '</div></body></html>'
+{ #category : 'views' }
+TwApp >> newViewId [
+	| random |
+	random := HostRandom new.
+	^ (1 to: 4) inject: '' into: [:id :each | id, (random integer printStringRadix: 16)]
 ]
 
 { #category : 'handling' }
-TwApp >> pageInto: aResponse [
+TwApp >> openViewInto: aResponse [
+	| view |
 	self checkForUnwatchedChanges.
-	aResponse content: self page
+	view := factory value.
+	view id: self newViewId.
+	views at: view id put: view.
+	session watch: view watches.
+	aResponse content: view document
 ]
 
 { #category : 'streaming' }
 TwApp >> push [
-	| event |
-	rendered := view render.
-	event := self eventFor: rendered.
-	subscribers do: [:each | each write: event]
-]
-
-{ #category : 'handling' }
-TwApp >> renderInto: aResponse [
-	aResponse content: view render
+	views do: [:each | each push]
 ]
 
 { #category : 'handling' }
 TwApp >> router [
 	^ Router new
-		get: '/' do: [:request :response | self pageInto: response];
-		get: '/events' do: [:request :response | self streamInto: response];
+		get: '/' do: [:request :response | self openViewInto: response];
+		get: '/events/:view' do: [:request :response :view | self stream: view into: response];
 		get: '/:script' do: [:request :response :script | self script: script into: response];
-		post: '/:action' do: [:request :response :action | self run: action asSymbol into: response];
+		post: '/:view/:action' do: [:request :response :view :action | self run: action on: view with: request into: response];
 		yourself
 ]
 
 { #category : 'handling' }
-TwApp >> run: anAction into: aResponse [
-	(view actions includes: anAction) ifFalse: [^ aResponse code: 404].
-	session do: [view perform: anAction].
-	self renderInto: aResponse
+TwApp >> run: aString on: anId with: aRequest into: aResponse [
+	| view action |
+	view := views at: anId ifAbsent: [^ aResponse code: 404].
+	action := (self action: aString of: view) ifNil: [^ aResponse code: 404].
+	session do: [self send: action to: view from: aRequest].
+	aResponse content: view render
 ]
 
 { #category : 'handling' }
@@ -99,10 +91,15 @@ TwApp >> scriptsDirectory [
 	^ (Rowan projectNamed: 'Tidewater') repositoryRoot / 'js'
 ]
 
+{ #category : 'actions' }
+TwApp >> send: anAction to: aView from: aRequest [
+	anAction numArgs = 0 ifTrue: [^ aView perform: anAction].
+	aView perform: anAction with: aRequest arguments
+]
+
 { #category : 'serving' }
 TwApp >> serve: aListener on: aPort [
-	rendered := view render.
-	session watch: view watches then: [self push].
+	session whenChanged: [self push].
 	aListener port: aPort; listenBacklog: 200; router: self router; run
 ]
 
@@ -117,23 +114,19 @@ TwApp >> session [
 ]
 
 { #category : 'initialization' }
-TwApp >> setView: aView session: aSession [
-	view := aView.
+TwApp >> setFactory: aBlock session: aSession [
+	factory := aBlock.
 	session := aSession.
-	subscribers := IdentitySet new
+	views := Dictionary new
 ]
 
-{ #category : 'streaming' }
-TwApp >> stream: aSocket [
-	subscribers add: aSocket.
-	[aSocket readWillNotBlockWithin: -1] ensure: [subscribers remove: aSocket]
-]
-
-{ #category : 'streaming' }
-TwApp >> streamInto: aResponse [
+{ #category : 'handling' }
+TwApp >> stream: anId into: aResponse [
+	| view |
+	view := views at: anId ifAbsent: [^ aResponse code: 404].
 	aResponse
 		contentType: 'text/event-stream';
-		sendContentsBlock: [:socket | self stream: socket]
+		sendContentsBlock: [:socket | view stream: socket]
 ]
 
 { #category : 'checking' }

@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test && playwright test -c acceptance"
+    "test": "playwright test && playwright test -c acceptance/counter.config.js && playwright test -c acceptance/todo.config.js"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0"

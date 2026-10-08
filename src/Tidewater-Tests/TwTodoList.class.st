@@ -13,6 +13,12 @@ TwTodoList >> add: aString [
 	self touch
 ]
 
+{ #category : 'removing' }
+TwTodoList >> clear [
+	items := OrderedCollection new.
+	self touch
+]
+
 { #category : 'initialization' }
 TwTodoList >> initialize [
 	super initialize.

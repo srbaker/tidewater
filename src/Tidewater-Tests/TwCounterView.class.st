@@ -1,6 +1,6 @@
 Class {
 	#name : 'TwCounterView',
-	#superclass : 'Object',
+	#superclass : 'TwView',
 	#instVars : [
 		'counter'
 	],
@@ -14,7 +14,7 @@ TwCounterView class >> on: aCounter [
 
 { #category : 'actions' }
 TwCounterView >> actions [
-	^ #(#increment #reset)
+	^ #(#increment)
 ]
 
 { #category : 'actions' }
@@ -25,11 +25,6 @@ TwCounterView >> increment [
 { #category : 'rendering' }
 TwCounterView >> render [
 	^ '<p>', counter count printString, '</p><button tw-click="increment">+</button>'
-]
-
-{ #category : 'actions' }
-TwCounterView >> reset [
-	counter reset
 ]
 
 { #category : 'initialization' }

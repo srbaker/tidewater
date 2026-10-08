@@ -1,6 +1,9 @@
 Class {
 	#name : 'TwAppTest',
 	#superclass : 'TestCase',
+	#instVars : [
+		'session'
+	],
 	#category : 'Tidewater-Tests'
 }
 
@@ -17,8 +20,21 @@ TwAppTest >> crlf [
 ]
 
 { #category : 'private' }
+TwAppTest >> event: html [
+	^ 'data: ', html, (String with: Character lf with: Character lf)
+]
+
+{ #category : 'private' }
 TwAppTest >> get: aPath [
 	^ HttpRequest fromString: 'GET ', aPath, ' HTTP/1.1', self crlf, self crlf
+]
+
+{ #category : 'private' }
+TwAppTest >> openViewWith: aRouter [
+	| html start |
+	html := self bodyOf: (aRouter handle: (self get: '/')).
+	start := (html indexOfSubCollection: 'tw-view="') + 9.
+	^ html copyFrom: start to: (html indexOf: $" startingAt: start) - 1
 ]
 
 { #category : 'private' }
@@ -27,174 +43,169 @@ TwAppTest >> post: aPath [
 ]
 
 { #category : 'private' }
-TwAppTest >> routerFor: aView [
-	^ self routerFor: aView in: TwMockSession new
+TwAppTest >> post: aPath fields: aString [
+	^ HttpRequest fromString: 'POST ', aPath, ' HTTP/1.1', self crlf,
+		'Content-Type: application/x-www-form-urlencoded', self crlf,
+		'Content-Length: ', aString size printString, self crlf, self crlf, aString
 ]
 
 { #category : 'private' }
-TwAppTest >> routerFor: aView in: aSession [
+TwAppTest >> routerFor: anApp [
 	| listener |
 	listener := TwMockListener new.
-	(TwApp on: aView in: aSession) serve: listener on: 8888.
+	anApp serve: listener on: 8888.
 	^ listener router
+]
+
+{ #category : 'private' }
+TwAppTest >> routerOn: aCounter [
+	^ self routerFor: (TwApp on: [TwCounterView on: aCounter] in: session)
+]
+
+{ #category : 'running' }
+TwAppTest >> setUp [
+	session := TwMockSession new
 ]
 
 { #category : 'tests' }
 TwAppTest >> testDoesNotWarnAboutPushedChanges [
-	| counter session app listener warnings |
+	| counter app warnings router |
 	counter := TwCounter new.
-	session := TwMockSession new.
-	app := TwApp on: (TwCounterView on: counter) in: session.
+	app := TwApp on: [TwCounterView on: counter] in: session.
 	warnings := WriteStream on: String new.
 	app warnTo: warnings.
-	listener := TwMockListener new.
-	app serve: listener on: 8888.
+	router := self routerFor: app.
+	self openViewWith: router.
 	counter increment.
 	session change.
-	listener router handle: (self get: '/').
+	self openViewWith: router.
 	self assert: warnings contents isEmpty
 ]
 
 { #category : 'tests' }
-TwAppTest >> testListensWithRoomForBurstsOfConnections [
-	| listener |
-	listener := TwMockListener new.
-	(TwApp on: (TwCounterView on: TwCounter new) in: TwMockSession new) serve: listener on: 8888.
-	self assert: listener listenBacklog equals: 200
+TwAppTest >> testGivesEachVisitAFreshViewWithAnUnguessableId [
+	| views router one two |
+	views := 0.
+	router := self routerFor: (TwApp on: [views := views + 1. TwCounterView on: TwCounter new] in: session).
+	one := self openViewWith: router.
+	two := self openViewWith: router.
+	self assert: views equals: 2.
+	self deny: one = two.
+	self assert: one size >= 20
 ]
 
 { #category : 'tests' }
-TwAppTest >> testPostingAnActionUpdatesTheView [
-	| counter view |
+TwAppTest >> testPassesPostedFieldsToActionsThatTakeThem [
+	| list router id |
+	list := TwTodoList new.
+	router := self routerFor: (TwApp on: [TwTodoView on: list] in: session).
+	id := self openViewWith: router.
+	router handle: (self post: '/', id, '/add' fields: 'item=milk').
+	self assert: list items asArray equals: #('milk')
+]
+
+{ #category : 'tests' }
+TwAppTest >> testPushesEveryViewWhenAWatchedObjectChanges [
+	| counter router one two first second |
 	counter := TwCounter new.
-	view := TwCounterView on: counter.
-	self assert: (self bodyOf: ((self routerFor: view) handle: (self post: '/increment'))) equals: view render.
-	self assert: counter count equals: 1
+	router := self routerOn: counter.
+	one := self openViewWith: router.
+	two := self openViewWith: router.
+	second := TwMockSocket whileOpen: [counter increment. session change].
+	first := TwMockSocket whileOpen: [(router handle: (self get: '/events/', two)) sendResponseOn: second].
+	(router handle: (self get: '/events/', one)) sendResponseOn: first.
+	self assert: first written last equals: (self event: (TwCounterView on: counter) render).
+	self assert: second written last equals: (self event: (TwCounterView on: counter) render)
 ]
 
 { #category : 'tests' }
-TwAppTest >> testPostingAnUnknownActionIsNotFound [
-	| router |
-	router := self routerFor: (TwCounterView on: TwCounter new).
-	self assert: (router handle: (self post: '/render')) code equals: 404
-]
-
-{ #category : 'tests' }
-TwAppTest >> testPrefixesEveryLineOfAnEvent [
-	| lf app |
-	lf := String with: Character lf.
-	app := TwApp on: (TwMockView rendering: '') in: TwMockSession new.
+TwAppTest >> testRunsAnActionOnItsViewInATransaction [
+	| counter router id |
+	counter := TwCounter new.
+	router := self routerOn: counter.
+	id := self openViewWith: router.
 	self
-		assert: (app eventFor: '<p>', lf, 'one', lf, '</p>')
-		equals: 'data: <p>', lf, 'data: one', lf, 'data: </p>', lf, lf
-]
-
-{ #category : 'tests' }
-TwAppTest >> testPushesWhenAWatchedObjectChanges [
-	| view app session listener socket |
-	session := TwMockSession new.
-	view := TwCounterView on: TwCounter new.
-	app := TwApp on: view in: session.
-	listener := TwMockListener new.
-	app serve: listener on: 8888.
-	socket := TwMockSocket whileOpen: [session change].
-	(listener router handle: (self get: '/events')) sendResponseOn: socket.
-	self assert: socket written last equals: (app eventFor: view render)
-]
-
-{ #category : 'tests' }
-TwAppTest >> testRunsActionsInATransaction [
-	| session |
-	session := TwMockSession new.
-	(self routerFor: (TwCounterView on: TwCounter new) in: session) handle: (self post: '/increment').
+		assert: (self bodyOf: (router handle: (self post: '/', id, '/increment')))
+		equals: (TwCounterView on: counter) render.
+	self assert: counter count equals: 1.
 	self assert: session hasRun
 ]
 
 { #category : 'tests' }
 TwAppTest >> testServesItsScripts [
 	| router directory |
-	router := self routerFor: (TwCounterView on: TwCounter new).
+	router := self routerOn: TwCounter new.
 	directory := (Rowan projectNamed: 'Tidewater') repositoryRoot / 'js'.
 	#('tidewater.js' 'morphdom.js') do: [:each |
 		self assert: (self bodyOf: (router handle: (self get: '/', each))) equals: (directory / each) contents]
 ]
 
 { #category : 'tests' }
-TwAppTest >> testServesItsViewInAPage [
-	| view |
-	view := TwCounterView on: TwCounter new.
-	self
-		assert: (self bodyOf: ((self routerFor: view) handle: (self get: '/')))
-		equals: '<!DOCTYPE html><html><head><script src="/morphdom.js" defer></script><script src="/tidewater.js" defer></script></head><body><div tw-view>', view render, '</div></body></html>'
-]
-
-{ #category : 'tests' }
-TwAppTest >> testServesItsViewWithAListenerOnAPort [
-	| view listener |
-	view := TwCounterView on: TwCounter new.
-	listener := TwMockListener new.
-	(TwApp on: view in: TwMockSession new) serve: listener on: 8888.
-	self assert: listener port equals: 8888.
-	self assert: listener isRunning.
-	self assert: ((self bodyOf: (listener router handle: (self get: '/'))) includesString: view render)
-]
-
-{ #category : 'tests' }
 TwAppTest >> testServesNoOtherFiles [
 	| router |
-	router := self routerFor: (TwCounterView on: TwCounter new).
+	router := self routerOn: TwCounter new.
 	self assert: (router handle: (self get: '/tidewater.spec.js')) code equals: 404.
 	self assert: (router handle: (self get: '/../package.json')) code equals: 404
 ]
 
 { #category : 'tests' }
-TwAppTest >> testStopsStreamingWhenTheClientLeaves [
-	| router socket |
-	router := self routerFor: (TwCounterView on: TwCounter new).
-	socket := TwMockSocket whileOpen: [].
-	(router handle: (self get: '/events')) sendResponseOn: socket.
-	router handle: (self post: '/increment').
-	self assert: socket written size equals: 1
+TwAppTest >> testServesWithAListenerOnAPort [
+	| listener |
+	listener := TwMockListener new.
+	(TwApp on: [TwCounterView on: TwCounter new] in: session) serve: listener on: 8888.
+	self assert: listener port equals: 8888.
+	self assert: listener listenBacklog equals: 200.
+	self assert: listener isRunning
 ]
 
 { #category : 'tests' }
-TwAppTest >> testStreamsTheViewWhenAnActionRuns [
-	| view router socket |
-	view := TwCounterView on: TwCounter new.
-	router := self routerFor: view.
-	socket := TwMockSocket whileOpen: [router handle: (self post: '/increment')].
-	(router handle: (self get: '/events')) sendResponseOn: socket.
+TwAppTest >> testStreamsToItsView [
+	| counter router id socket |
+	counter := TwCounter new.
+	router := self routerOn: counter.
+	id := self openViewWith: router.
+	socket := TwMockSocket whileOpen: [counter increment. session change].
+	(router handle: (self get: '/events/', id)) sendResponseOn: socket.
 	self assert: (socket written first includesString: 'Content-Type: text/event-stream').
-	self assert: socket written last equals: 'data: ', view render, (String with: Character lf with: Character lf)
+	self assert: socket written last equals: (self event: (TwCounterView on: counter) render)
+]
+
+{ #category : 'tests' }
+TwAppTest >> testUnknownActionsAndViewsAreNotFound [
+	| router id |
+	router := self routerOn: TwCounter new.
+	id := self openViewWith: router.
+	self assert: (router handle: (self post: '/', id, '/render')) code equals: 404.
+	self assert: (router handle: (self post: '/nope/increment')) code equals: 404.
+	self assert: (router handle: (self get: '/events/nope')) code equals: 404
 ]
 
 { #category : 'tests' }
 TwAppTest >> testUsesTheRealSessionByDefault [
-	| session |
-	session := (TwApp on: (TwCounterView on: TwCounter new)) session.
-	self assert: session system identical: System.
-	self assert: session notifications identical: ObjectsCommittedNotification
+	| default |
+	default := (TwApp on: [TwCounterView on: TwCounter new]) session.
+	self assert: default system identical: System.
+	self assert: default notifications identical: ObjectsCommittedNotification
 ]
 
 { #category : 'tests' }
-TwAppTest >> testWarnsWhenAPageShowsAChangeThatWasNeverPushed [
-	| counter app listener warnings |
+TwAppTest >> testWarnsWhenAViewShowsAChangeThatWasNeverPushed [
+	| counter app warnings router |
 	counter := TwCounter new.
-	app := TwApp on: (TwCounterView on: counter) in: TwMockSession new.
+	app := TwApp on: [TwCounterView on: counter] in: session.
 	warnings := WriteStream on: String new.
 	app warnTo: warnings.
-	listener := TwMockListener new.
-	app serve: listener on: 8888.
+	router := self routerFor: app.
+	self openViewWith: router.
 	counter increment.
-	listener router handle: (self get: '/').
+	self openViewWith: router.
 	self assert: (warnings contents includesString: 'TwCounterView changed without a watched object changing')
 ]
 
 { #category : 'tests' }
-TwAppTest >> testWatchesWhatItsViewWatches [
-	| counter session |
+TwAppTest >> testWatchesWhatEachViewWatches [
+	| counter |
 	counter := TwCounter new.
-	session := TwMockSession new.
-	self routerFor: (TwCounterView on: counter) in: session.
+	self openViewWith: (self routerOn: counter).
 	self assert: session watched asArray equals: {counter}
 ]
