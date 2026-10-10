@@ -6,7 +6,9 @@ Class {
 		'session',
 		'views',
 		'warnings',
-		'scripts'
+		'scripts',
+		'name',
+		'relays'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -34,11 +36,22 @@ TwApp >> checkForUnwatchedChanges [
 	views do: [:each | each checkForUnwatchedChangesTo: warnings]
 ]
 
+{ #category : 'serving' }
+TwApp >> listener [
+	^ TwListener new
+]
+
+{ #category : 'accessing' }
+TwApp >> name: aString [
+	name := aString
+]
+
 { #category : 'views' }
 TwApp >> newViewId [
-	| random |
+	| random id |
 	random := HostRandom new.
-	^ (1 to: 4) inject: '' into: [:id :each | id, (random integer printStringRadix: 16)]
+	id := (1 to: 4) inject: '' into: [:each :index | each, (random integer printStringRadix: 16)].
+	^ name ifNil: [id] ifNotNil: [name, '.', id]
 ]
 
 { #category : 'handling' }
@@ -54,7 +67,23 @@ TwApp >> openViewInto: aResponse [
 
 { #category : 'streaming' }
 TwApp >> push [
-	views do: [:each | each push]
+	views do: [:each |
+		each push.
+		relays do: [:relay | relay write: each relayEvent]]
+]
+
+{ #category : 'streaming' }
+TwApp >> relayInto: aResponse [
+	aResponse
+		contentType: 'text/event-stream';
+		sendContentsBlock: [:socket |
+			relays add: socket.
+			[socket readWillNotBlockWithin: -1] ensure: [relays remove: socket]]
+]
+
+{ #category : 'handling' }
+TwApp >> render: anId into: aResponse [
+	aResponse content: ((self viewAt: anId) ifNil: [^ aResponse code: 404]) render
 ]
 
 { #category : 'handling' }
@@ -62,6 +91,8 @@ TwApp >> router [
 	^ Router new
 		get: '/' do: [:request :response | self openViewInto: response];
 		get: '/events/:view' do: [:request :response :view | self stream: view into: response];
+		get: '/views/:view' do: [:request :response :view | self render: view into: response];
+		get: '/relay' do: [:request :response | self relayInto: response];
 		get: '/:script' do: [:request :response :script | self script: script into: response];
 		post: '/:view/:action' do: [:request :response :view :action | self run: action on: view with: request into: response];
 		yourself
@@ -113,7 +144,7 @@ TwApp >> serve: aListener on: aPort [
 
 { #category : 'serving' }
 TwApp >> serveOn: aPort [
-	self serve: HttpListener new on: aPort
+	self serve: self listener on: aPort
 ]
 
 { #category : 'accessing' }
@@ -126,6 +157,7 @@ TwApp >> setFactory: aBlock session: aSession [
 	factory := aBlock.
 	session := aSession.
 	views := Dictionary new.
+	relays := IdentitySet new.
 	scripts := OrderedCollection with: 'morphdom.js' with: 'tidewater.js'
 ]
 

@@ -97,6 +97,11 @@ TwView >> push [
 	sockets do: [:each | each write: event]
 ]
 
+{ #category : 'streaming' }
+TwView >> relayEvent [
+	^ 'event: ', id, (String with: Character lf), (self eventFor: rendered)
+]
+
 { #category : 'rendering' }
 TwView >> render [
 	^ self subclassResponsibility

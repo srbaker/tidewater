@@ -127,6 +127,19 @@ TwAppTest >> testPassesPostedFieldsToActionsThatTakeThem [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testPrefixesViewIdsWithItsName [
+	| counter app router id |
+	counter := TwCounter new.
+	app := TwApp on: [TwCounterView on: counter] in: session.
+	app name: 'w1'.
+	router := self routerFor: app.
+	id := self openViewWith: router.
+	self assert: (id beginsWith: 'w1.').
+	router handle: (self post: '/', id, '/increment').
+	self assert: counter count equals: 1
+]
+
+{ #category : 'tests' }
 TwAppTest >> testPushesEveryViewWhenAWatchedObjectChanges [
 	| counter router one two first second |
 	counter := TwCounter new.
@@ -138,6 +151,20 @@ TwAppTest >> testPushesEveryViewWhenAWatchedObjectChanges [
 	(router handle: (self get: '/events/', one)) sendResponseOn: first.
 	self assert: first written last equals: (self event: (TwCounterView on: counter) render).
 	self assert: second written last equals: (self event: (TwCounterView on: counter) render)
+]
+
+{ #category : 'tests' }
+TwAppTest >> testRelaysEveryPushTaggedWithItsView [
+	| counter router id socket |
+	counter := TwCounter new.
+	router := self routerOn: counter.
+	id := self openViewWith: router.
+	socket := TwMockSocket whileOpen: [counter increment. session change].
+	(router handle: (self get: '/relay')) sendResponseOn: socket.
+	self assert: (socket written first includesString: 'Content-Type: text/event-stream').
+	self
+		assert: socket written last
+		equals: 'event: ', id, (String with: Character lf), (self event: (TwCounterView on: counter) render)
 ]
 
 { #category : 'tests' }
@@ -181,6 +208,17 @@ TwAppTest >> testServesNoOtherFiles [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testServesTheCurrentRenderOfAView [
+	| counter router id |
+	counter := TwCounter new.
+	router := self routerOn: counter.
+	id := self openViewWith: router.
+	counter increment.
+	self assert: (self bodyOf: (router handle: (self get: '/views/', id))) equals: (TwCounterView on: counter) render.
+	self assert: (router handle: (self get: '/views/nope')) code equals: 404
+]
+
+{ #category : 'tests' }
 TwAppTest >> testServesWithAListenerOnAPort [
 	| listener |
 	listener := TwMockListener new.
@@ -188,6 +226,11 @@ TwAppTest >> testServesWithAListenerOnAPort [
 	self assert: listener port equals: 8888.
 	self assert: listener listenBacklog equals: 200.
 	self assert: listener isRunning
+]
+
+{ #category : 'tests' }
+TwAppTest >> testServesWithAListenerThatLeavesCommittingToActions [
+	self assert: ((TwApp on: [TwCounterView on: TwCounter new]) listener isKindOf: TwListener)
 ]
 
 { #category : 'tests' }
