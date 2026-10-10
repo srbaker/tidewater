@@ -13,6 +13,16 @@ export function front({ port, workers }) {
     stream.response.write(`${html.split('\n').map((line) => `data: ${line}`).join('\n')}\n\n`);
   }
 
+  function gone(stream) {
+    stream.response.write('event: gone\ndata: \n\n');
+  }
+
+  function forget(worker) {
+    for (const [id, entries] of streams) {
+      if (workerFor(id) === worker) entries.forEach(gone);
+    }
+  }
+
   function deliver(id, html) {
     for (const stream of streams.get(id) ?? []) {
       stream.pushed = true;
@@ -35,7 +45,10 @@ export function front({ port, workers }) {
           if (id) deliver(id, html);
         }
       });
-      response.on('end', () => setTimeout(() => relay(worker), 1000));
+      response.on('end', () => {
+        forget(worker);
+        setTimeout(() => relay(worker), 1000);
+      });
     }).on('error', () => setTimeout(() => relay(worker), 1000));
   }
 
@@ -63,7 +76,10 @@ export function front({ port, workers }) {
       let html = '';
       answer.setEncoding('utf8');
       answer.on('data', (chunk) => { html += chunk; });
-      answer.on('end', () => { if (!entry.pushed) send(entry, html); });
+      answer.on('end', () => {
+        if (answer.statusCode === 404) return gone(entry);
+        if (!entry.pushed) send(entry, html);
+      });
     });
   }
 

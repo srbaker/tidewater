@@ -20,15 +20,24 @@ window.tidewater = {
   },
 };
 
-async function run(element, action, fields = '') {
-  const view = element.closest('[tw-view]');
-  const response = await fetch(`/${view.getAttribute('tw-view')}/${action}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: fields.toString(),
-  });
-  morph(view, await response.text());
+const pending = [];
+
+async function send(id, action, fields) {
+  const view = document.querySelector(`[tw-view="${id}"]`);
+  try {
+    const response = await fetch(`/${id}/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: fields,
+    });
+    morph(view, await response.text());
+  } catch {
+    pending.push(() => send(id, action, fields));
+  }
 }
+
+const run = (element, action, fields = '') =>
+  send(element.closest('[tw-view]').getAttribute('tw-view'), action, fields.toString());
 
 document.addEventListener('click', (event) => {
   const element = event.target.closest('[tw-click]');
@@ -54,7 +63,17 @@ document.addEventListener('input', (event) => {
 });
 
 const events = new EventSource(`/events/${root().getAttribute('tw-view')}`);
+
 events.onmessage = (event) => {
   morph(root(), event.data);
   root().setAttribute('tw-connected', '');
+  root().removeAttribute('tw-reconnecting');
+  pending.splice(0).forEach((action) => action());
 };
+
+events.onerror = () => {
+  root().setAttribute('tw-reconnecting', '');
+  root().removeAttribute('tw-connected');
+};
+
+events.addEventListener('gone', () => location.reload());

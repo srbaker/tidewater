@@ -116,7 +116,7 @@ TwView >> render: aView [
 TwView >> stream: aSocket [
 	sockets add: aSocket.
 	rendered := self render.
-	aSocket write: (self eventFor: rendered).
+	aSocket write: 'retry: 1000', (String with: Character lf), (self eventFor: rendered).
 	[aSocket readWillNotBlockWithin: -1] ensure: [sockets remove: aSocket]
 ]
 

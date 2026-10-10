@@ -13,6 +13,7 @@ function fakeWorker(name) {
         response.flushHeaders();
         worker.relay = response;
       } else if (request.url.startsWith('/views/')) {
+        if (request.url.includes('nope')) { response.writeHead(404); return response.end(); }
         response.end(`<p>current ${request.url.slice(7)}</p>`);
       } else if (request.method === 'POST') {
         worker.posts.push({ url: request.url, body, type: request.headers['content-type'], length: request.headers['content-length'] });
@@ -86,4 +87,23 @@ test('serves scripts from a worker', async () => {
   close();
 
   expect(script).toBe('w1 served /tidewater.js');
+});
+
+test('tells a browser when the worker no longer has its view', async () => {
+  const { base, close } = await cluster();
+  const events = await readEvents(await fetch(`${base}/events/w1.nope`), 1);
+  close();
+
+  expect(events).toEqual(['event: gone\ndata: ']);
+});
+
+test('tells a worker\'s browsers their views are gone when its relay drops', async () => {
+  const { base, workers, close } = await cluster();
+  const stream = await fetch(`${base}/events/w1.abc`);
+  const events = readEvents(stream, 2);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  workers[0].relay.end();
+
+  expect(await events).toEqual(['data: <p>current w1.abc</p>', 'event: gone\ndata: ']);
+  close();
 });

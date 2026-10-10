@@ -100,7 +100,7 @@ TwViewTest >> testSendsItsCurrentRenderWhenAStreamOpens [
 	view := TwCounterView on: TwCounter new.
 	socket := TwMockSocket whileOpen: [].
 	view stream: socket.
-	self assert: socket written asArray equals: {view eventFor: view render}
+	self assert: socket written asArray equals: {'retry: 1000', (String with: Character lf), (view eventFor: view render)}
 ]
 
 { #category : 'tests' }

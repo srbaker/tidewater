@@ -164,10 +164,13 @@ TwApp >> setFactory: aBlock session: aSession [
 { #category : 'handling' }
 TwApp >> stream: anId into: aResponse [
 	| view |
-	view := views at: anId ifAbsent: [^ aResponse code: 404].
+	view := views at: anId ifAbsent: [nil].
 	aResponse
 		contentType: 'text/event-stream';
-		sendContentsBlock: [:socket | view stream: socket]
+		sendContentsBlock: [:socket |
+			view
+				ifNil: [socket write: 'event: gone', (String with: Character lf), 'data: ', (String with: Character lf with: Character lf)]
+				ifNotNil: [view stream: socket]]
 ]
 
 { #category : 'views' }

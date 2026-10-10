@@ -246,13 +246,21 @@ TwAppTest >> testStreamsToItsView [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testTellsAStreamForAViewItDoesNotHaveThatTheViewIsGone [
+	| socket |
+	socket := TwMockSocket whileOpen: [].
+	((self routerOn: TwCounter new) handle: (self get: '/events/nope')) sendResponseOn: socket.
+	self assert: (socket written first includesString: 'Content-Type: text/event-stream').
+	self assert: socket written last equals: 'event: gone', (String with: Character lf), (self event: '')
+]
+
+{ #category : 'tests' }
 TwAppTest >> testUnknownActionsAndViewsAreNotFound [
 	| router id |
 	router := self routerOn: TwCounter new.
 	id := self openViewWith: router.
 	self assert: (router handle: (self post: '/', id, '/render')) code equals: 404.
-	self assert: (router handle: (self post: '/nope/increment')) code equals: 404.
-	self assert: (router handle: (self get: '/events/nope')) code equals: 404
+	self assert: (router handle: (self post: '/nope/increment')) code equals: 404
 ]
 
 { #category : 'tests' }
