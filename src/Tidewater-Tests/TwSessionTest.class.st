@@ -79,3 +79,11 @@ TwSessionTest >> testRetriesWhenACommitConflicts [
 		assert: system log asArray
 		equals: #(#abortTransaction #action #commitTransaction #abortTransaction #action #commitTransaction #abortTransaction #action #commitTransaction)
 ]
+
+{ #category : 'tests' }
+TwSessionTest >> testWatchesOnlyCommittedObjects [
+	| system |
+	system := TwMockSystem new.
+	(TwSession on: system) watch: {#committed. Object new}.
+	self assert: system watched asArray equals: #(#committed)
+]

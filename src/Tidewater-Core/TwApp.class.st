@@ -36,6 +36,15 @@ TwApp >> checkForUnwatchedChanges [
 	views do: [:each | each checkForUnwatchedChangesTo: warnings]
 ]
 
+{ #category : 'handling' }
+TwApp >> history: anId into: aResponse [
+	| view |
+	view := (self viewAt: anId) ifNil: [^ aResponse code: 404].
+	aResponse
+		contentType: 'application/json';
+		content: view history asArray asJson
+]
+
 { #category : 'serving' }
 TwApp >> listener [
 	^ TwListener new
@@ -61,7 +70,7 @@ TwApp >> openViewInto: aResponse [
 	view := factory value.
 	view id: self newViewId.
 	views at: view id put: view.
-	session watch: view allWatches.
+	session watch: view allWatches, view code.
 	aResponse content: (view documentWith: scripts)
 ]
 
@@ -69,6 +78,7 @@ TwApp >> openViewInto: aResponse [
 TwApp >> push [
 	views do: [:each |
 		each push.
+		session watch: each allWatches.
 		relays do: [:relay | relay write: each relayEvent]]
 ]
 
@@ -92,6 +102,7 @@ TwApp >> router [
 		get: '/' do: [:request :response | self openViewInto: response];
 		get: '/events/:view' do: [:request :response :view | self stream: view into: response];
 		get: '/views/:view' do: [:request :response :view | self render: view into: response];
+		get: '/history/:view' do: [:request :response :view | self history: view into: response];
 		get: '/relay' do: [:request :response | self relayInto: response];
 		get: '/:script' do: [:request :response :script | self script: script into: response];
 		post: '/:view/:action' do: [:request :response :view :action | self run: action on: view with: request into: response];

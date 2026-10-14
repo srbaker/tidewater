@@ -191,6 +191,20 @@ TwAppTest >> testRunsAnActionOnItsViewInATransaction [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testServesAViewsHistory [
+	| counter router id |
+	counter := TwCounter new.
+	router := self routerOn: counter.
+	id := self openViewWith: router.
+	counter increment.
+	session change.
+	self
+		assert: (self bodyOf: (router handle: (self get: '/history/', id)))
+		equals: '["<p>0</p><button tw-click=\"increment\">+</button>","<p>1</p><button tw-click=\"increment\">+</button>"]'.
+	self assert: (router handle: (self get: '/history/nope')) code equals: 404
+]
+
+{ #category : 'tests' }
 TwAppTest >> testServesItsScripts [
 	| router directory |
 	router := self routerOn: TwCounter new.
@@ -283,11 +297,17 @@ TwAppTest >> testWarnsWhenAViewShowsAChangeThatWasNeverPushed [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testWatchesTheCodeOfEachView [
+	self openViewWith: (self routerOn: TwCounter new).
+	self assert: (session watched includesIdentical: (TwCounterView persistentMethodDictForEnv: 0))
+]
+
+{ #category : 'tests' }
 TwAppTest >> testWatchesWhatChildViewsWatch [
 	| counter |
 	counter := TwCounter new.
 	self openViewWith: (self routerFor: (TwApp on: [TwMockView rendering: '' children: {TwCounterView on: counter}] in: session)).
-	self assert: session watched asArray equals: {counter}
+	self assert: (session watched includesIdentical: counter)
 ]
 
 { #category : 'tests' }
@@ -295,5 +315,15 @@ TwAppTest >> testWatchesWhatEachViewWatches [
 	| counter |
 	counter := TwCounter new.
 	self openViewWith: (self routerOn: counter).
-	self assert: session watched asArray equals: {counter}
+	self assert: (session watched includesIdentical: counter)
+]
+
+{ #category : 'tests' }
+TwAppTest >> testWatchesWhatViewsReachAfterEachPush [
+	| view |
+	view := TwMockView watching: #(#before) children: #().
+	self openViewWith: (self routerFor: (TwApp on: [view] in: session)).
+	view setWatches: #(#after).
+	session change.
+	self assert: (session watched includes: #after)
 ]

@@ -205,3 +205,21 @@ test('queues actions that fail while disconnected, and sends them once connected
   await expect.poll(() => attempts).toBe(2);
   await expect(page.locator('p')).toHaveText('1');
 });
+
+test('travels back to an earlier render, and returns to the present', async ({ page }) => {
+  await page.route(`${events.url}/history/p1`, (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify(['<p>0</p>', '<p>1</p>', '<p>2</p>']) }));
+  await open(page, { first: '<p>2</p>' });
+  await expect(page.locator('p')).toHaveText('2');
+
+  await page.evaluate(() => tidewater.travel(-2));
+  await expect(page.locator('p')).toHaveText('0');
+  await expect(page.locator('[tw-view][tw-traveling]')).toBeAttached();
+  events.send('<p>3</p>');
+  await page.waitForTimeout(200);
+  await expect(page.locator('p')).toHaveText('0');
+
+  await page.evaluate(() => tidewater.present());
+  await expect(page.locator('p')).toHaveText('3');
+  await expect(page.locator('[tw-view][tw-traveling]')).toHaveCount(0);
+});

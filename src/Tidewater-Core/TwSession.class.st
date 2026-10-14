@@ -54,7 +54,7 @@ TwSession >> system [
 
 { #category : 'watching' }
 TwSession >> watch: objects [
-	system addAllToNotifySet: objects
+	system addAllToNotifySet: (objects select: [:each | each isCommitted])
 ]
 
 { #category : 'watching' }

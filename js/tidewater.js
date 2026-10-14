@@ -13,10 +13,26 @@ const morph = (view, html) => morphdom(view, `<div>${html}</div>`, {
   onElUpdated: (element) => { if (element.hasAttribute('tw-hook')) call(element, 'updated'); },
 });
 
+let latest;
+let traveling = false;
+
 window.tidewater = {
   hook(name, callbacks) {
     hooks[name] = callbacks;
     document.querySelectorAll(`[tw-hook="${name}"]`).forEach((element) => call(element, 'mounted'));
+  },
+
+  async travel(steps) {
+    const history = await (await fetch(`/history/${root().getAttribute('tw-view')}`)).json();
+    traveling = true;
+    root().setAttribute('tw-traveling', '');
+    morph(root(), history[Math.max(0, history.length - 1 + steps)]);
+  },
+
+  present() {
+    traveling = false;
+    root().removeAttribute('tw-traveling');
+    if (latest !== undefined) morph(root(), latest);
   },
 };
 
@@ -65,7 +81,8 @@ document.addEventListener('input', (event) => {
 const events = new EventSource(`/events/${root().getAttribute('tw-view')}`);
 
 events.onmessage = (event) => {
-  morph(root(), event.data);
+  latest = event.data;
+  if (!traveling) morph(root(), latest);
   root().setAttribute('tw-connected', '');
   root().removeAttribute('tw-reconnecting');
   pending.splice(0).forEach((action) => action());

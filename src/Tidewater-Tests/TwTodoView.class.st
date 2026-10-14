@@ -50,8 +50,3 @@ TwTodoView >> visibleItems [
 	filter isEmpty ifTrue: [^ list items].
 	^ list items select: [:each | each includesString: filter]
 ]
-
-{ #category : 'watching' }
-TwTodoView >> watches [
-	^ {list}
-]

@@ -87,6 +87,7 @@ export function front({ port, workers }) {
     const path = request.url;
     if (request.method === 'GET' && path.startsWith('/events/')) return stream(request, response, path.slice(8));
     if (request.method === 'GET' && path === '/') return forward(request, response, workers[turn++ % workers.length]);
+    if (request.method === 'GET' && path.startsWith('/history/')) return forward(request, response, workerFor(path.slice(9)) ?? workers[0]);
     if (request.method === 'POST') {
       const worker = workerFor(path.slice(1));
       if (!worker) { response.writeHead(404); return response.end(); }

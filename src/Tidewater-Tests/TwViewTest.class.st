@@ -39,6 +39,15 @@ TwViewTest >> testFindsItselfAndItsDescendantsById [
 ]
 
 { #category : 'tests' }
+TwViewTest >> testKnowsWhereItsCodeLives [
+	| code |
+	code := (TwTodoView on: TwTodoList new) code.
+	{TwTodoView. TwTodoForm. TwView} do: [:each |
+		self assert: (code includesIdentical: (each persistentMethodDictForEnv: 0))].
+	self deny: (code includesIdentical: (Object persistentMethodDictForEnv: 0))
+]
+
+{ #category : 'tests' }
 TwViewTest >> testPrefixesEveryLineOfAnEvent [
 	| lf |
 	lf := String with: Character lf.
@@ -55,6 +64,18 @@ TwViewTest >> testPushesItselfToItsStreams [
 	socket := TwMockSocket whileOpen: [counter increment. view push].
 	view stream: socket.
 	self assert: socket written last equals: (view eventFor: '<p>1</p><button tw-click="increment">+</button>')
+]
+
+{ #category : 'tests' }
+TwViewTest >> testRemembersItsLastFiftyRenders [
+	| counter view |
+	counter := TwCounter new.
+	view := TwCounterView on: counter.
+	view id: 'abc'; documentWith: #().
+	60 timesRepeat: [counter increment. view push].
+	self assert: view history size equals: 50.
+	self assert: view history first equals: '<p>11</p><button tw-click="increment">+</button>'.
+	self assert: view history last equals: view render
 ]
 
 { #category : 'tests' }
@@ -104,6 +125,17 @@ TwViewTest >> testSendsItsCurrentRenderWhenAStreamOpens [
 ]
 
 { #category : 'tests' }
+TwViewTest >> testStopsAtAggregateRootsAndOtherViews [
+	| list watches |
+	list := TwTodoList new.
+	list add: 'milk'.
+	watches := (TwAutoView on: {list. TwAutoView on: 'child'}) watches.
+	self assert: (watches includesIdentical: list).
+	self deny: (watches includesIdentical: list items).
+	self deny: (watches anySatisfy: [:each | each isKindOf: TwView])
+]
+
+{ #category : 'tests' }
 TwViewTest >> testStopsStreamingWhenTheClientLeaves [
 	| view socket |
 	view := TwCounterView on: TwCounter new.
@@ -123,6 +155,13 @@ TwViewTest >> testWarnsAboutChangesThatWereNeverPushed [
 	warnings := WriteStream on: String new.
 	view checkForUnwatchedChangesTo: warnings.
 	self assert: (warnings contents includesString: 'TwCounterView changed without a watched object changing')
+]
+
+{ #category : 'tests' }
+TwViewTest >> testWatchesWhatItReachesByDefault [
+	| counter |
+	counter := TwCounter new.
+	self assert: ((TwAutoView on: counter) watches includesIdentical: counter)
 ]
 
 { #category : 'tests' }

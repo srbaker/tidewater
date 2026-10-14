@@ -31,8 +31,3 @@ TwCounterView >> render [
 TwCounterView >> setCounter: aCounter [
 	counter := aCounter
 ]
-
-{ #category : 'watching' }
-TwCounterView >> watches [
-	^ {counter}
-]

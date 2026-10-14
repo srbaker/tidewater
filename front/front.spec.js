@@ -107,3 +107,11 @@ test('tells a worker\'s browsers their views are gone when its relay drops', asy
   expect(await events).toEqual(['data: <p>current w1.abc</p>', 'event: gone\ndata: ']);
   close();
 });
+
+test('asks the worker that holds a view for its history', async () => {
+  const { base, close } = await cluster();
+  const history = await (await fetch(`${base}/history/w2.abc`)).text();
+  close();
+
+  expect(history).toBe('w2 served /history/w2.abc');
+});

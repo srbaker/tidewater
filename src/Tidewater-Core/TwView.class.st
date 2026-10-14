@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'id',
 		'sockets',
-		'rendered'
+		'rendered',
+		'history'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -42,10 +43,20 @@ TwView >> children [
 	^ #()
 ]
 
+{ #category : 'watching' }
+TwView >> code [
+	| dictionaries class |
+	dictionaries := OrderedCollection new.
+	class := self class.
+	[dictionaries add: (class persistentMethodDictForEnv: 0). class == TwView] whileFalse: [class := class superclass].
+	self children do: [:each | dictionaries addAll: each code].
+	^ dictionaries select: [:each | each notNil]
+]
+
 { #category : 'rendering' }
 TwView >> documentWith: scripts [
 	| html |
-	rendered := self render.
+	self remember: self render.
 	html := WriteStream on: String new.
 	html nextPutAll: '<!DOCTYPE html><html><head>'.
 	scripts do: [:each | html nextPutAll: '<script src="/', each, '" defer></script>'].
@@ -73,6 +84,11 @@ TwView >> eventFor: html [
 	^ event lf; contents
 ]
 
+{ #category : 'history' }
+TwView >> history [
+	^ history
+]
+
 { #category : 'accessing' }
 TwView >> id [
 	^ id
@@ -86,13 +102,22 @@ TwView >> id: aString [
 
 { #category : 'initialization' }
 TwView >> initialize [
-	sockets := IdentitySet new
+	sockets := IdentitySet new.
+	history := OrderedCollection new
+]
+
+{ #category : 'watching' }
+TwView >> isWatchable: anObject [
+	^ (anObject isSpecial
+		or: [anObject isInvariant
+		or: [anObject isBehavior
+		or: [anObject isKindOf: TwView]]]) not
 ]
 
 { #category : 'streaming' }
 TwView >> push [
 	| event |
-	rendered := self render.
+	self remember: self render.
 	event := self eventFor: rendered.
 	sockets do: [:each | each write: event]
 ]
@@ -100,6 +125,14 @@ TwView >> push [
 { #category : 'streaming' }
 TwView >> relayEvent [
 	^ 'event: ', id, (String with: Character lf), (self eventFor: rendered)
+]
+
+{ #category : 'history' }
+TwView >> remember: html [
+	rendered := html.
+	(history notEmpty and: [history last = html]) ifTrue: [^ self].
+	history add: html.
+	history size > 50 ifTrue: [history removeFirst]
 ]
 
 { #category : 'rendering' }
@@ -112,10 +145,18 @@ TwView >> render: aView [
 	^ '<div tw-view="', (aView id ifNil: ['']), '">', aView render, '</div>'
 ]
 
+{ #category : 'watching' }
+TwView >> slotsOf: anObject [
+	| slots |
+	slots := (1 to: anObject class instSize) collect: [:index | anObject instVarAt: index].
+	(anObject class isIndexable and: [anObject class isBytes not]) ifFalse: [^ slots].
+	^ slots, ((1 to: anObject basicSize) collect: [:index | anObject basicAt: index])
+]
+
 { #category : 'streaming' }
 TwView >> stream: aSocket [
 	sockets add: aSocket.
-	rendered := self render.
+	self remember: self render.
 	aSocket write: 'retry: 1000', (String with: Character lf), (self eventFor: rendered).
 	[aSocket readWillNotBlockWithin: -1] ensure: [sockets remove: aSocket]
 ]
@@ -129,5 +170,16 @@ TwView >> viewAt: anId [
 
 { #category : 'watching' }
 TwView >> watches [
-	^ #()
+	"By default, everything this view reaches, stopping at aggregate roots and other views."
+
+	| found pending |
+	found := IdentitySet new.
+	pending := ((TwView instSize + 1) to: self class instSize) collect: [:index | self instVarAt: index].
+	pending := pending asOrderedCollection.
+	[pending notEmpty and: [found size < 1000]] whileTrue: [| each |
+		each := pending removeFirst.
+		((self isWatchable: each) and: [(found includes: each) not]) ifTrue: [
+			found add: each.
+			(each isKindOf: TwRoot) ifFalse: [pending addAll: (self slotsOf: each)]]].
+	^ found asArray
 ]

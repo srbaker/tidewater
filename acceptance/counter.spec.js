@@ -29,3 +29,16 @@ test('a commit from another session updates the page', async ({ page }) => {
 
   await expect(page.locator('p')).toHaveText('1');
 });
+
+test('changing a view\'s code re-renders the pages showing it', async ({ page }) => {
+  const render = (before) => `TwCounterView rwCompileMethod: 'render
+	^ ''<p>${before}'', counter count printString, ''</p><button tw-click="increment">+</button>''' category: 'rendering'`;
+  await page.goto('/');
+  await expect(page.locator('[tw-view][tw-connected]')).toBeAttached();
+  try {
+    commit(render('Count: '));
+    await expect(page.locator('p')).toHaveText('Count: 0');
+  } finally {
+    commit(render(''));
+  }
+});
