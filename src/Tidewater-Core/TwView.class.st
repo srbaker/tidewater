@@ -5,7 +5,8 @@ Class {
 		'id',
 		'sockets',
 		'rendered',
-		'history'
+		'history',
+		'idleSince'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -103,7 +104,13 @@ TwView >> id: aString [
 { #category : 'initialization' }
 TwView >> initialize [
 	sockets := IdentitySet new.
-	history := OrderedCollection new
+	history := OrderedCollection new.
+	idleSince := Time millisecondClockValue
+]
+
+{ #category : 'streaming' }
+TwView >> isIdleSince: aMillisecondClockValue [
+	^ sockets isEmpty and: [idleSince < aMillisecondClockValue]
 ]
 
 { #category : 'watching' }
@@ -158,7 +165,9 @@ TwView >> stream: aSocket [
 	sockets add: aSocket.
 	self remember: self render.
 	aSocket write: 'retry: 1000', (String with: Character lf), (self eventFor: rendered).
-	[aSocket readWillNotBlockWithin: -1] ensure: [sockets remove: aSocket]
+	[aSocket readWillNotBlockWithin: -1] ensure: [
+		sockets remove: aSocket.
+		idleSince := Time millisecondClockValue]
 ]
 
 { #category : 'composing' }

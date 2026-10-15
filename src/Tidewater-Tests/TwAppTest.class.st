@@ -92,6 +92,31 @@ TwAppTest >> testDoesNotWarnAboutPushedChanges [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testForgetsIdleViewsWhenItPushes [
+	| app router id now |
+	now := Time millisecondClockValue.
+	app := TwApp on: [TwCounterView on: TwCounter new] in: session.
+	router := self routerFor: app.
+	id := self openViewWith: router.
+	app clock: [now + 61000].
+	session change.
+	self assert: (router handle: (self post: '/', id, '/increment')) code equals: 404
+]
+
+{ #category : 'tests' }
+TwAppTest >> testForgetsViewsThatHaveBeenIdleForAMinute [
+	| app router id now |
+	now := Time millisecondClockValue.
+	app := TwApp on: [TwCounterView on: TwCounter new] in: session.
+	app clock: [now].
+	router := self routerFor: app.
+	id := self openViewWith: router.
+	app clock: [now + 61000].
+	self openViewWith: router.
+	self assert: (router handle: (self post: '/', id, '/increment')) code equals: 404
+]
+
+{ #category : 'tests' }
 TwAppTest >> testGivesEachVisitAFreshViewWithAnUnguessableId [
 	| views router one two |
 	views := 0.
@@ -114,6 +139,25 @@ TwAppTest >> testIncludesAndServesTheAppsOwnScripts [
 	self
 		assert: (self bodyOf: (router handle: (self get: '/examples/todo.js')))
 		equals: ((Rowan projectNamed: 'Tidewater') repositoryRoot / 'js' / 'examples' / 'todo.js') contents
+]
+
+{ #category : 'tests' }
+TwAppTest >> testKeepsViewsThatAreConnectedOrRecentlyIdle [
+	| counter app router id socket now |
+	now := Time millisecondClockValue.
+	counter := TwCounter new.
+	app := TwApp on: [TwCounterView on: counter] in: session.
+	router := self routerFor: app.
+	id := self openViewWith: router.
+	app clock: [now + 30000].
+	self openViewWith: router.
+	router handle: (self post: '/', id, '/increment').
+	socket := TwMockSocket whileOpen: [
+		app clock: [now + 120000].
+		self openViewWith: router.
+		router handle: (self post: '/', id, '/increment')].
+	(router handle: (self get: '/events/', id)) sendResponseOn: socket.
+	self assert: counter count equals: 2
 ]
 
 { #category : 'tests' }

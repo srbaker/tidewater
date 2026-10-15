@@ -8,7 +8,8 @@ Class {
 		'warnings',
 		'scripts',
 		'name',
-		'relays'
+		'relays',
+		'clock'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -34,6 +35,11 @@ TwApp >> action: aString of: aView [
 TwApp >> checkForUnwatchedChanges [
 	warnings ifNil: [^ self].
 	views do: [:each | each checkForUnwatchedChangesTo: warnings]
+]
+
+{ #category : 'views' }
+TwApp >> clock: aBlock [
+	clock := aBlock
 ]
 
 { #category : 'handling' }
@@ -66,7 +72,7 @@ TwApp >> newViewId [
 { #category : 'handling' }
 TwApp >> openViewInto: aResponse [
 	| view |
-	self checkForUnwatchedChanges.
+	self sweep; checkForUnwatchedChanges.
 	view := factory value.
 	view id: self newViewId.
 	views at: view id put: view.
@@ -76,6 +82,7 @@ TwApp >> openViewInto: aResponse [
 
 { #category : 'streaming' }
 TwApp >> push [
+	self sweep.
 	views do: [:each |
 		each push.
 		session watch: each allWatches.
@@ -169,7 +176,8 @@ TwApp >> setFactory: aBlock session: aSession [
 	session := aSession.
 	views := Dictionary new.
 	relays := IdentitySet new.
-	scripts := OrderedCollection with: 'morphdom.js' with: 'tidewater.js'
+	scripts := OrderedCollection with: 'morphdom.js' with: 'tidewater.js'.
+	clock := [Time millisecondClockValue]
 ]
 
 { #category : 'handling' }
@@ -182,6 +190,13 @@ TwApp >> stream: anId into: aResponse [
 			view
 				ifNil: [socket write: 'event: gone', (String with: Character lf), 'data: ', (String with: Character lf with: Character lf)]
 				ifNotNil: [view stream: socket]]
+]
+
+{ #category : 'views' }
+TwApp >> sweep [
+	"Forget views that have had no open stream for a minute."
+
+	views := views reject: [:each | each isIdleSince: clock value - 60000]
 ]
 
 { #category : 'views' }
