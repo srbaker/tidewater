@@ -35,7 +35,8 @@ TwView >> checkForUnwatchedChangesTo: aStream [
 	html = rendered ifFalse: [
 		aStream
 			nextPutAll: self class name, ' changed without a watched object changing; watch more, or put it behind a TwRoot';
-			lf].
+			lf;
+			flush].
 	rendered := html
 ]
 

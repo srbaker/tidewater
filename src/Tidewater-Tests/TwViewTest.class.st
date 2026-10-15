@@ -30,6 +30,18 @@ TwViewTest >> testFindsItselfAndItsDescendantsById [
 ]
 
 { #category : 'tests' }
+TwViewTest >> testFlushesEachWarningSoALogShowsItAtOnce [
+	| counter view warnings |
+	counter := TwCounter new.
+	view := TwCounterView on: counter.
+	view id: 'abc'; documentWith: #().
+	counter increment.
+	warnings := TwMockStream on: String new.
+	view checkForUnwatchedChangesTo: warnings.
+	self assert: warnings isFlushed
+]
+
+{ #category : 'tests' }
 TwViewTest >> testKnowsWhereItsCodeLives [
 	| code |
 	code := (TwTodoView on: TwTodoList new) code.
