@@ -6,8 +6,11 @@ Class {
 
 { #category : 'Web Server' }
 TwListener >> acceptWaiting [
+	"Abort before each connection, so every request sees everything committed before it arrived."
+
 	[socket readWillNotBlock] whileTrue: [
 		System sessionCacheStatAt: 0 incrementBy: 1.
+		System abortTransaction.
 		[:each | self mainLoopBody: each] forkWith: {socket accept}]
 ]
 
