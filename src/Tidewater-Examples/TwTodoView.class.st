@@ -6,7 +6,7 @@ Class {
 		'form',
 		'filter'
 	],
-	#category : 'Tidewater-Tests'
+	#category : 'Tidewater-Examples'
 }
 
 { #category : 'instance creation' }

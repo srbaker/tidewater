@@ -4,7 +4,7 @@ Class {
 	#instVars : [
 		'count'
 	],
-	#category : 'Tidewater-Tests'
+	#category : 'Tidewater-Examples'
 }
 
 { #category : 'instance creation' }

@@ -5,7 +5,7 @@ Class {
 		'list',
 		'error'
 	],
-	#category : 'Tidewater-Tests'
+	#category : 'Tidewater-Examples'
 }
 
 { #category : 'instance creation' }

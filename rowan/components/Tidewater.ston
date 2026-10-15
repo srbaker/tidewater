@@ -4,6 +4,7 @@ RwLoadComponent {
 	#componentNames : [ ],
 	#packageNames : [
 		'Tidewater-Core',
+		'Tidewater-Examples',
 		'Tidewater-Tests'
 	],
 	#comment : ''

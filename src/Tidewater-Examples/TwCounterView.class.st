@@ -4,7 +4,7 @@ Class {
 	#instVars : [
 		'counter'
 	],
-	#category : 'Tidewater-Tests'
+	#category : 'Tidewater-Examples'
 }
 
 { #category : 'instance creation' }
@@ -20,11 +20,6 @@ TwCounterView >> actions [
 { #category : 'actions' }
 TwCounterView >> increment [
 	counter increment
-]
-
-{ #category : 'rendering' }
-TwCounterView >> render [
-	^ '<p>', counter count printString, '</p><button tw-click="increment">+</button>'
 ]
 
 { #category : 'rendering' }

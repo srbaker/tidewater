@@ -1,0 +1,21 @@
+#!/bin/bash
+# Run an example app: bin/serve counter|todo [PORT] [WORKER-NAME]
+# Needs the GemStone environment (as set up by Jasper's "Open Terminal") and a stone with WebGS and Tidewater loaded.
+port=${2:-8080}
+case "$1" in
+  counter) global='TidewaterCounter'; model='TwCounter'; view='TwCounterView'; scripts='' ;;
+  todo) global='TidewaterTodos'; model='TwTodoList'; view='TwTodoView'; scripts="script: 'examples/todo.js';" ;;
+  *) echo "usage: $0 counter|todo [PORT] [WORKER-NAME]" >&2; exit 2 ;;
+esac
+name=${3:+"name: '$3';"}
+echo "Serving the $1 example on http://localhost:$port/"
+exec "$GEMSTONE/bin/topaz" -lq <<TOPAZ
+set user DataCurator pass ${TIDEWATER_STONE_PASSWORD:-swordfish} gemstone ${TIDEWATER_STONE:-gs64stone}
+login
+run
+((UserGlobals at: #$global ifAbsent: [nil]) isKindOf: $model) ifFalse: [
+	UserGlobals at: #$global put: $model new.
+	System commitTransaction].
+(TwApp on: [$view on: (UserGlobals at: #$global)]) $scripts $name warnTo: Transcript; serveOn: $port
+%
+TOPAZ
