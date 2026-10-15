@@ -31,14 +31,16 @@ test('a commit from another session updates the page', async ({ page }) => {
 });
 
 test('changing a view\'s code re-renders the pages showing it', async ({ page }) => {
-  const render = (before) => `TwCounterView rwCompileMethod: 'render
-	^ ''<p>${before}'', counter count printString, ''</p><button tw-click="increment">+</button>''' category: 'rendering'`;
   await page.goto('/');
   await expect(page.locator('[tw-view][tw-connected]')).toBeAttached();
+  commit(`UserGlobals at: #TidewaterSavedSource put: (TwCounterView compiledMethodAt: #renderOn:) sourceString.
+TwCounterView rwCompileMethod: 'renderOn: html
+	html p: ''Count: '', counter count printString.
+	html button: {#onClick -> #increment} with: ''+''' category: 'rendering'`);
   try {
-    commit(render('Count: '));
     await expect(page.locator('p')).toHaveText('Count: 0');
   } finally {
-    commit(render(''));
+    commit(`TwCounterView rwCompileMethod: (UserGlobals at: #TidewaterSavedSource) category: 'rendering'.
+UserGlobals removeKey: #TidewaterSavedSource`);
   }
 });
