@@ -164,3 +164,7 @@ With four workers, a commit reached each of 10,000 open pages within 350ms.
 ## Status
 
 Tidewater is young. The [issues](https://github.com/srbaker/tidewater/issues) list what it doesn't do yet.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
