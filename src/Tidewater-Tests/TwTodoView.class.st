@@ -30,12 +30,10 @@ TwTodoView >> filter: fields [
 ]
 
 { #category : 'rendering' }
-TwTodoView >> render [
-	| html |
-	html := WriteStream on: String new.
-	html nextPutAll: '<input type="search" name="filter" tw-input="filter" tw-debounce="200" value="', (self escape: filter), '"><ul>'.
-	self visibleItems do: [:each | html nextPutAll: '<li>'; nextPutAll: (self escape: each); nextPutAll: '</li>'].
-	^ html nextPutAll: '</ul>'; nextPutAll: (self render: form); contents
+TwTodoView >> renderOn: html [
+	html input: {#type -> 'search'. #name -> 'filter'. #value -> filter. #onInput -> #filter. #debounce -> 200}.
+	html ul: [self visibleItems do: [:each | html li: each]].
+	html render: form
 ]
 
 { #category : 'initialization' }

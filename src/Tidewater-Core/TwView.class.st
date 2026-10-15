@@ -64,18 +64,6 @@ TwView >> documentWith: scripts [
 	^ html nextPutAll: '</head><body><div tw-view="', id, '">', rendered, '</div></body></html>'; contents
 ]
 
-{ #category : 'rendering' }
-TwView >> escape: aString [
-	| html |
-	html := WriteStream on: String new.
-	aString do: [:each | | special |
-		special := '&<>"''' indexOf: each.
-		special = 0
-			ifTrue: [html nextPut: each]
-			ifFalse: [html nextPutAll: (#('&amp;' '&lt;' '&gt;' '&quot;' '&#39;') at: special)]].
-	^ html contents
-]
-
 { #category : 'streaming' }
 TwView >> eventFor: html [
 	| lines event |
@@ -144,12 +132,15 @@ TwView >> remember: html [
 
 { #category : 'rendering' }
 TwView >> render [
-	^ self subclassResponsibility
+	| html |
+	html := TwHtml new.
+	self renderOn: html.
+	^ html contents
 ]
 
-{ #category : 'composing' }
-TwView >> render: aView [
-	^ '<div tw-view="', (aView id ifNil: ['']), '">', aView render, '</div>'
+{ #category : 'rendering' }
+TwView >> renderOn: html [
+	self subclassResponsibility
 ]
 
 { #category : 'watching' }

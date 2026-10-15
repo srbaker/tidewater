@@ -13,8 +13,7 @@ TwAutoView class >> on: aModel [
 ]
 
 { #category : 'rendering' }
-TwAutoView >> render [
-	^ ''
+TwAutoView >> renderOn: html [
 ]
 
 { #category : 'initialization' }

@@ -27,6 +27,12 @@ TwCounterView >> render [
 	^ '<p>', counter count printString, '</p><button tw-click="increment">+</button>'
 ]
 
+{ #category : 'rendering' }
+TwCounterView >> renderOn: html [
+	html p: counter count printString.
+	html button: {#onClick -> #increment} with: '+'
+]
+
 { #category : 'initialization' }
 TwCounterView >> setCounter: aCounter [
 	counter := aCounter

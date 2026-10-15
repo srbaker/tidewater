@@ -18,21 +18,12 @@ TwViewTest >> testDoesNotWarnAboutPushedChanges [
 ]
 
 { #category : 'tests' }
-TwViewTest >> testEscapesTextForHtml [
-	self
-		assert: ((TwMockView rendering: '') escape: '<a href="x">Tom & Jerry''s</a>')
-		equals: '&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&#39;s&lt;/a&gt;'
-]
-
-{ #category : 'tests' }
 TwViewTest >> testFindsItselfAndItsDescendantsById [
 	| grandchild child parent |
 	grandchild := TwMockView rendering: ''.
 	child := TwMockView rendering: '' children: {grandchild}.
 	parent := TwMockView rendering: '' children: {child}.
 	parent id: 'abc'.
-	parent render: child.
-	child render: grandchild.
 	self assert: (parent viewAt: 'abc') identical: parent.
 	self assert: (parent viewAt: 'abc-1-1') identical: grandchild.
 	self assert: (parent viewAt: 'abc-2') isNil
@@ -76,16 +67,6 @@ TwViewTest >> testRemembersItsLastFiftyRenders [
 	self assert: view history size equals: 50.
 	self assert: view history first equals: '<p>11</p><button tw-click="increment">+</button>'.
 	self assert: view history last equals: view render
-]
-
-{ #category : 'tests' }
-TwViewTest >> testRendersAChildInsideItsOwnView [
-	| child parent |
-	child := TwMockView rendering: '<p>child</p>'.
-	parent := TwMockView rendering: '' children: {child}.
-	parent id: 'abc'.
-	self assert: (parent render: child) equals: '<div tw-view="abc-1"><p>child</p></div>'.
-	self assert: child id equals: 'abc-1'
 ]
 
 { #category : 'tests' }

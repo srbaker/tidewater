@@ -28,11 +28,11 @@ TwTodoForm >> add: fields [
 ]
 
 { #category : 'rendering' }
-TwTodoForm >> render [
-	| html |
-	html := WriteStream on: String new.
-	error ifNotNil: [html nextPutAll: '<p>'; nextPutAll: error; nextPutAll: '</p>'].
-	^ html nextPutAll: '<form tw-submit="add"><input name="item" tw-hook="autofocus"><button>Add</button></form>'; contents
+TwTodoForm >> renderOn: html [
+	error ifNotNil: [html p: error].
+	html form: {#onSubmit -> #add} with: [
+		html input: {#name -> 'item'. #hook -> #autofocus}.
+		html button: 'Add']
 ]
 
 { #category : 'initialization' }
