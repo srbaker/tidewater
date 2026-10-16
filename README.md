@@ -1,6 +1,6 @@
 # Tidewater
 
-A live web framework for GemStone/S.
+A live web framework for GemStone/S. **[Read the documentation.](https://srbaker.github.io/tidewater/)**
 
 Views are Smalltalk objects that render HTML. When anything commits a change to the objects a view shows — a click in a browser, a script, a colleague in another session — every page showing that view updates itself. There is no client-side application code to write, no API to design, and no cache to keep in step with the database: the database *is* the application's state, and the pages follow it.
 
