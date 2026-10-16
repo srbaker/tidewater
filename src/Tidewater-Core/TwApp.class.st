@@ -77,7 +77,7 @@ TwApp >> openViewInto: aResponse [
 	view id: self newViewId.
 	views at: view id put: view.
 	session watch: view allWatches, view code.
-	aResponse content: (view documentWith: scripts)
+	aResponse content: (view documentWith: (scripts collect: [:each | each basename]))
 ]
 
 { #category : 'streaming' }
@@ -128,19 +128,15 @@ TwApp >> run: aString on: anId with: aRequest into: aResponse [
 ]
 
 { #category : 'scripts' }
-TwApp >> script: aPath [
-	scripts add: aPath
+TwApp >> script: aFile [
+	scripts add: aFile
 ]
 
 { #category : 'handling' }
-TwApp >> script: aFilename into: aResponse [
-	(self scripts includes: aFilename) ifFalse: [^ aResponse code: 404].
-	aResponse content: (self scriptsDirectory / aFilename) contents
-]
-
-{ #category : 'scripts' }
-TwApp >> scripts [
-	^ scripts
+TwApp >> script: aName into: aResponse [
+	| file |
+	file := scripts detect: [:each | each basename = aName] ifNone: [^ aResponse code: 404].
+	aResponse content: file contents
 ]
 
 { #category : 'scripts' }
@@ -176,7 +172,7 @@ TwApp >> setFactory: aBlock session: aSession [
 	session := aSession.
 	views := Dictionary new.
 	relays := IdentitySet new.
-	scripts := OrderedCollection with: 'morphdom.js' with: 'tidewater.js'.
+	scripts := OrderedCollection with: self scriptsDirectory / 'morphdom.js' with: self scriptsDirectory / 'tidewater.js'.
 	clock := [Time millisecondClockValue]
 ]
 

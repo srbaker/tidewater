@@ -3,7 +3,7 @@
 # Needs the GemStone environment, as set up by Jasper's "Open Terminal".
 case "$1" in
   counter) model='TwCounter'; view='TwCounterView'; scripts='' ;;
-  todo) model='TwTodoList'; view='TwTodoView'; scripts="script: 'examples/todo.js';" ;;
+  todo) model='TwTodoList'; view='TwTodoView'; scripts="script: (Rowan projectNamed: 'Tidewater') repositoryRoot / 'examples' / 'js' / 'todo.js';" ;;
   *) echo "usage: $0 counter|todo PORT [WORKER-NAME]" >&2; exit 2 ;;
 esac
 name=${3:+"name: '$3';"}
