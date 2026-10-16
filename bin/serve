@@ -1,10 +1,10 @@
 #!/bin/bash
 # Run an example app: bin/serve counter|todo [PORT] [WORKER-NAME]
-# Needs the GemStone environment (as set up by Jasper's "Open Terminal") and a stone with WebGS and Tidewater loaded.
+# Needs the GemStone environment (as set up by Jasper's "Open Terminal") and a stone with WebGS, Tidewater and its examples loaded.
 port=${2:-8080}
 case "$1" in
-  counter) global='TidewaterCounter'; model='TwCounter'; view='TwCounterView'; scripts='' ;;
-  todo) global='TidewaterTodos'; model='TwTodoList'; view='TwTodoView'; scripts="script: 'examples/todo.js';" ;;
+  counter) global='TidewaterCounter'; model='Counter'; view='CounterView'; scripts='' ;;
+  todo) global='TidewaterTodos'; model='TodoList'; view='TodoView'; scripts="script: (Rowan projectNamed: 'TidewaterExamples') repositoryRoot / 'examples' / 'js' / 'todo.js';" ;;
   *) echo "usage: $0 counter|todo [PORT] [WORKER-NAME]" >&2; exit 2 ;;
 esac
 name=${3:+"name: '$3';"}

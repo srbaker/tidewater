@@ -1,0 +1,19 @@
+RwLoadSpecificationV2 {
+	#specName : 'TidewaterExamples',
+	#projectName : 'TidewaterExamples',
+	#projectAlias : 'tidewater',
+	#gitUrl : 'git@github.com:srbaker/tidewater.git',
+	#revision : 'master',
+	#projectSpecFile : 'examples/rowan/project.ston',
+	#componentNames : [
+		'Examples'
+	],
+	#platformProperties : {
+		'gemstone' : {
+			'allusers' : {
+				#defaultSymbolDictName : 'TidewaterExamples'
+			}
+		}
+	},
+	#comment : ''
+}

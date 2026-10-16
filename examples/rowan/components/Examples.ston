@@ -1,0 +1,9 @@
+RwLoadComponent {
+	#name : 'Examples',
+	#projectNames : [ ],
+	#componentNames : [ ],
+	#packageNames : [
+		'Tidewater-Examples'
+	],
+	#comment : ''
+}

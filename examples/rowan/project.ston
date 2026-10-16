@@ -1,0 +1,12 @@
+RwProjectSpecificationV3 {
+	#specName : 'project',
+	#projectVersion : '0.0.1',
+	#projectSpecPath : 'examples/rowan',
+	#componentsPath : 'examples/rowan/components',
+	#packagesPath : 'examples/src',
+	#projectsPath : 'examples/rowan/projects',
+	#specsPath : 'examples/rowan/specs',
+	#packageFormat : 'tonel',
+	#packageConvention : 'RowanHybrid',
+	#comment : 'Example Tidewater apps.'
+}

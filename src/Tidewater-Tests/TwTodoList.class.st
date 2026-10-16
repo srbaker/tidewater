@@ -4,7 +4,7 @@ Class {
 	#instVars : [
 		'items'
 	],
-	#category : 'Tidewater-Examples'
+	#category : 'Tidewater-Tests'
 }
 
 { #category : 'adding' }

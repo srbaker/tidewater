@@ -5,14 +5,14 @@ A live web framework for GemStone/S.
 Views are Smalltalk objects that render HTML. When anything commits a change to the objects a view shows — a click in a browser, a script, a colleague in another session — every page showing that view updates itself. There is no client-side application code to write, no API to design, and no cache to keep in step with the database: the database *is* the application's state, and the pages follow it.
 
 ```smalltalk
-TwCounterView >> renderOn: html
+CounterView >> renderOn: html
 	html p: counter count printString.
 	html button: {#onClick -> #increment} with: '+'
 
-TwCounterView >> actions
+CounterView >> actions
 	^ #(#increment)
 
-TwCounterView >> increment
+CounterView >> increment
 	counter increment
 ```
 
@@ -34,7 +34,7 @@ Clone Tidewater next to your other projects, and load it with Rowan, from Jasper
 System commitTransaction.
 ```
 
-Then run an example and open it in a couple of browsers:
+Load the examples the same way, from `examples/rowan/specs/TidewaterExamples.ston`. Then run one and open it in a couple of browsers:
 
 ```sh
 bin/serve todo 8080      # or: bin/serve counter 8080
@@ -47,7 +47,7 @@ The scripts log in as `DataCurator` to `gs64stone`; set `TIDEWATER_STONE_PASSWOR
 A view subclasses `TwView` and writes its HTML on a canvas:
 
 ```smalltalk
-TwTodoView >> renderOn: html
+TodoView >> renderOn: html
 	html input: {#type -> 'search'. #name -> 'filter'. #value -> filter. #onInput -> #filter. #debounce -> 200}.
 	html ul: [self visibleItems do: [:each | html li: each]].
 	html render: form
@@ -63,10 +63,10 @@ TwTodoView >> renderOn: html
 A view lists the actions a page may run, and implements them:
 
 ```smalltalk
-TwTodoForm >> actions
+TodoForm >> actions
 	^ #(#add:)
 
-TwTodoForm >> add: fields
+TodoForm >> add: fields
 	| item |
 	item := fields at: 'item' ifAbsent: [''].
 	item isEmpty ifTrue: [^ error := 'Item can''t be blank'].
@@ -81,7 +81,7 @@ Each action runs in a transaction: Tidewater aborts, runs it, and commits, retry
 Every visit gets its own view, made fresh by the app's factory:
 
 ```smalltalk
-(TwApp on: [TwTodoView on: (UserGlobals at: #TidewaterTodos)]) serveOn: 8080
+(TwApp on: [TodoView on: (UserGlobals at: #TidewaterTodos)]) serveOn: 8080
 ```
 
 So a view's instance variables are that page's own state — what was typed into a filter, a validation error — while the objects it shows are shared, persistent, and live.
@@ -95,7 +95,7 @@ Views contain views. A view lists its `children` and renders them with `html ren
 A view watches whatever it can reach from its instance variables, so it updates when any of it is committed. Watching stops at **aggregate roots**: subclass `TwRoot` for an object that owns others, and have its changes end with `self touch`:
 
 ```smalltalk
-TwTodoList >> add: aString
+TodoList >> add: aString
 	items add: aString.
 	self touch
 ```
@@ -107,7 +107,7 @@ A view can also say exactly what it watches by implementing `watches`. A view's 
 Test views with plain SUnit. `TwTestCase` adds one assertion, which fails when a change shows up in the render but nothing the view watches changed — the one bug that keeps a page from updating:
 
 ```smalltalk
-self assertView: (TwTodoView on: list) noticesChangesBy: [list add: 'milk']
+self assertView: (TodoView on: list) noticesChangesBy: [list add: 'milk']
 ```
 
 While developing, `app warnTo: Transcript` reports the same mistake at run time.
@@ -120,7 +120,7 @@ Tidewater's client is one small script and [morphdom](https://github.com/patrick
 - Actions that fail while disconnected are queued and sent once the stream is back.
 - After a server restart, pages reload themselves onto fresh views.
 - The element being typed in is never patched underneath the person typing.
-- **Hooks** do what Smalltalk can't: a view marks an element with `#hook -> #autofocus`, and the app supplies a script with `app script: 'examples/todo.js'`:
+- **Hooks** do what Smalltalk can't: a view marks an element with `#hook -> #autofocus`, and the app adds a script of its own with `app script: aFile`:
 
   ```js
   tidewater.hook('autofocus', { mounted: (element) => element.focus() });
