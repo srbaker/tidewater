@@ -12,4 +12,6 @@ Things we learned the hard way, which may save you the trouble.
 
 **Rc classes didn't help.** They avoid conflicts on a hot root, but writing into one doesn't reliably signal the notify set. Roots stay plain, and conflicting actions retry.
 
+**A transaction belongs to the gem, not the process.** An abort to see a new commit, from the poller or the listener, discarded the work of any action waiting partway through in another process. Actions that never wait were safe, since GemStone doesn't preempt processes, which is why it took an action with a `Delay` to see it. Now they take turns.
+
 **Transcript waits for a line.** Warnings didn't reach a server's log until something else was printed. They're flushed now.

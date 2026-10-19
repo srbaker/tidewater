@@ -160,6 +160,11 @@ TwAppTest >> testKeepsViewsThatAreConnectedOrRecentlyIdle [
 ]
 
 { #category : 'tests' }
+TwAppTest >> testListensWithItsOwnSessionSoRefreshesWaitForActions [
+	self assert: (TwApp on: [TwCounterView on: TwCounter new] in: session) listener session identical: session
+]
+
+{ #category : 'tests' }
 TwAppTest >> testPassesPostedFieldsToActionsThatTakeThem [
 	| list router id |
 	list := TwTodoList new.

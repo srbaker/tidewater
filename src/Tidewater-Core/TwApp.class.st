@@ -53,7 +53,7 @@ TwApp >> history: anId into: aResponse [
 
 { #category : 'serving' }
 TwApp >> listener [
-	^ TwListener new
+	^ TwListener on: session
 ]
 
 { #category : 'accessing' }

@@ -37,6 +37,8 @@ Each action runs in its own transaction. Tidewater aborts, so the action sees th
 
 If the commit conflicts with someone else's, Tidewater aborts and runs the action again, up to ten times. So an action should be safe to repeat: work from the objects it's given, not from anything it remembered before. After ten conflicts the page gets a 409 and nothing is committed.
 
+A gem's actions take turns, since they share its one transaction. So keep actions quick: one that waits on another service holds up every other action in its gem, and stays in conflict longer.
+
 ## What comes back
 
 When the action is done, the view renders, and that HTML goes straight back to the page that ran it. Every other page showing the same objects hears of the commit through the [notify set](../how-it-works), and updates a moment later.

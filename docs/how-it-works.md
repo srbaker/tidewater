@@ -26,3 +26,4 @@
 
 - Views no browser has had a stream open to for a minute are forgotten.
 - The gem's own listener aborts as it waits for connections, rather than committing, so it never holds a stale view of the world, and serving gems never conflict with each other.
+- A gem has one transaction, shared by all its processes, so an abort in one would throw away an action half done in another. Actions, refreshes and pushes take turns.

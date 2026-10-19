@@ -70,6 +70,22 @@ TwSessionTest >> testRefreshesAndReactsWhenAWatchedObjectHasChanged [
 ]
 
 { #category : 'tests' }
+TwSessionTest >> testRefreshesOnlyBetweenActions [
+	| system session |
+	system := TwMockSystem new.
+	session := TwSession on: system.
+	session do: [
+		system log add: #action.
+		[session refresh] fork.
+		(Delay forMilliseconds: 10) wait.
+		system log add: #resumed].
+	(Delay forMilliseconds: 10) wait.
+	self
+		assert: system log asArray
+		equals: #(#abortTransaction #action #resumed #commitTransaction #abortTransaction)
+]
+
+{ #category : 'tests' }
 TwSessionTest >> testRetriesWhenACommitConflicts [
 	| system |
 	system := TwMockSystem new.
@@ -78,6 +94,27 @@ TwSessionTest >> testRetriesWhenACommitConflicts [
 	self
 		assert: system log asArray
 		equals: #(#abortTransaction #action #commitTransaction #abortTransaction #action #commitTransaction #abortTransaction #action #commitTransaction)
+]
+
+{ #category : 'tests' }
+TwSessionTest >> testWaitsForAnActionInProgressBeforeRefreshing [
+	"An abort is the whole gem's, so refreshing in the middle of an action would discard its work."
+
+	| system session |
+	system := TwMockSystem new.
+	session := TwSession on: system.
+	session whenChanged: [system log add: #changed].
+	[session do: [
+		system log add: #action.
+		system commitChangeTo: #a.
+		[session poll] fork.
+		(Delay forMilliseconds: 10) wait.
+		system log add: #resumed].
+	(Delay forMilliseconds: 10) wait.
+	self
+		assert: (system log copyWithout: #signaledObjects) asArray
+		equals: #(#abortTransaction #action #resumed #commitTransaction #abortTransaction #changed)]
+		ensure: [session stop]
 ]
 
 { #category : 'tests' }

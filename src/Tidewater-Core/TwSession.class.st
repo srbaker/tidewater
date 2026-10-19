@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'system',
 		'changed',
-		'poller'
+		'poller',
+		'mutex'
 	],
 	#category : 'Tidewater-Core'
 }
@@ -16,11 +17,14 @@ TwSession class >> on: aSystem [
 
 { #category : 'transactions' }
 TwSession >> do: aBlock [
-	10 timesRepeat: [
-		system abortTransaction.
-		aBlock value.
-		system commitTransaction ifTrue: [^ self]].
-	system abortTransaction.
+	"One transaction serves the whole gem, so actions and refreshes take turns."
+
+	mutex critical: [
+		10 timesRepeat: [
+			system abortTransaction.
+			aBlock value.
+			system commitTransaction ifTrue: [^ self]].
+		system abortTransaction].
 	TwConflict signal: 'Gave up after 10 conflicting commits'
 ]
 
@@ -32,13 +36,22 @@ TwSession >> isPolling [
 { #category : 'watching' }
 TwSession >> poll [
 	system signaledObjects isEmpty ifTrue: [^ self].
-	system abortTransaction.
-	changed value
+	mutex critical: [
+		system abortTransaction.
+		changed value]
+]
+
+{ #category : 'transactions' }
+TwSession >> refresh [
+	"See everything committed so far, once no action is in progress."
+
+	mutex critical: [system abortTransaction]
 ]
 
 { #category : 'initialization' }
 TwSession >> setSystem: aSystem [
-	system := aSystem
+	system := aSystem.
+	mutex := Semaphore forMutualExclusion
 ]
 
 { #category : 'watching' }
