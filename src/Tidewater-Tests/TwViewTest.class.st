@@ -42,6 +42,16 @@ TwViewTest >> testFlushesEachWarningSoALogShowsItAtOnce [
 ]
 
 { #category : 'tests' }
+TwViewTest >> testIncrementsSlowlyForTheLoadTests [
+	| counter view |
+	counter := TwCounter new.
+	view := TwCounterView on: counter.
+	view slowIncrement.
+	self assert: counter count equals: 1.
+	self assert: (view actions includes: #slowIncrement)
+]
+
+{ #category : 'tests' }
 TwViewTest >> testKnowsWhereItsCodeLives [
 	| code |
 	code := (TwTodoView on: TwTodoList new) code.

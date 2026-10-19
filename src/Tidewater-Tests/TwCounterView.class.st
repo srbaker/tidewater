@@ -14,7 +14,7 @@ TwCounterView class >> on: aCounter [
 
 { #category : 'actions' }
 TwCounterView >> actions [
-	^ #(#increment)
+	^ #(#increment #slowIncrement)
 ]
 
 { #category : 'actions' }
@@ -31,4 +31,12 @@ TwCounterView >> renderOn: html [
 { #category : 'initialization' }
 TwCounterView >> setCounter: aCounter [
 	counter := aCounter
+]
+
+{ #category : 'actions' }
+TwCounterView >> slowIncrement [
+	"Waits partway through, as an action calling another service would."
+
+	counter increment.
+	(Delay forMilliseconds: 20) wait
 ]

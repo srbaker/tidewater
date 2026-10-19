@@ -1,9 +1,12 @@
-// Do concurrent increments all land? Clicks over HTTP race with another session's commits.
-// Usage: node load/concurrent.js [base URL] — against bin/acceptance-server counter.
+// Do concurrent increments all land, and does every page end up showing them?
+// Clicks over HTTP race with another session's commits, while every page's stream is open, so pushes abort mid-flight.
+// Usage: node load/concurrent.js [base URL] [increment|slowIncrement] — against bin/acceptance-server counter.
+// slowIncrement waits partway through, which is when a refresh in the same gem could discard it.
 import { spawn } from 'node:child_process';
 import { commit } from '../acceptance/stone.js';
 
 const base = process.argv[2] ?? 'http://127.0.0.1:8889';
+const action = process.argv[3] ?? 'increment';
 const clients = 10;
 const clicks = 20;
 const external = 100;
@@ -23,17 +26,44 @@ ${count} timesRepeat: [[System abortTransaction. (UserGlobals at: #TidewaterAcce
   });
 }
 
-async function client() {
+const shown = [];
+const statuses = {};
+
+async function watch(index, id) {
+  const response = await fetch(`${base}/events/${id}`);
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  (async () => {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) return;
+      for (const match of value.matchAll(/<p>(\d+)<\/p>/g)) shown[index] = Number(match[1]);
+    }
+  })().catch(() => {});
+  return reader;
+}
+
+async function client(index) {
   const html = await (await fetch(`${base}/`)).text();
   const id = html.match(/tw-view="([^"]+)"/)[1];
-  for (let i = 0; i < clicks; i++) await fetch(`${base}/${id}/increment`, { method: 'POST' });
+  const reader = await watch(index, id);
+  for (let i = 0; i < clicks; i++) {
+    const { status } = await fetch(`${base}/${id}/${action}`, { method: 'POST' });
+    statuses[status] = (statuses[status] ?? 0) + 1;
+  }
+  return reader;
 }
 
 commit('(UserGlobals at: #TidewaterAcceptanceModel) reset');
 const started = Date.now();
-const [retried] = await Promise.all([externalIncrements(external), ...Array.from({ length: clients }, client)]);
+const [retried, ...readers] = await Promise.all([externalIncrements(external), ...Array.from({ length: clients }, (_, index) => client(index))]);
 const final = await (await fetch(`${base}/`)).text();
 const count = Number(final.match(/<p>(\d+)<\/p>/)[1]);
-const expected = clients * clicks + external;
-console.log(`${clients} clients × ${clicks} clicks + ${external} external increments (external retried ${retried} conflicts) in ${Date.now() - started}ms`);
-console.log(`count ${count}, expected ${expected}: ${count === expected ? 'every increment landed' : `${expected - count} LOST`}`);
+const expected = (statuses[200] ?? 0) + external;
+console.log(`${clients} clients × ${clicks} ${action} clicks + ${external} external increments (external retried ${retried} conflicts) in ${Date.now() - started}ms`);
+console.log(`clicks answered ${Object.entries(statuses).map(([status, n]) => `${status} ×${n}`).join(', ')}; a 409 gave up after conflicting ten times, and committed nothing`);
+console.log(`count ${count}, expected ${expected} (accepted clicks + external): ${count === expected ? 'every increment landed' : `${expected - count} LOST`}`);
+const settled = Date.now();
+while (shown.some((each) => each !== count) && Date.now() - settled < 5000) await new Promise((resolve) => setTimeout(resolve, 50));
+const behind = shown.filter((each) => each !== count).length;
+console.log(behind ? `${behind} of ${clients} pages STILL BEHIND after 5s: ${shown.join(' ')}` : `every page shows ${count}`);
+await Promise.all(readers.map((reader) => reader.cancel()));
